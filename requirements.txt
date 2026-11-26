@@ -1,0 +1,4 @@
+# Python packages for the simulation pipeline (install: python -m pip install -r requirements.txt)
+pandas>=2.0
+numpy>=1.24
+pvlib>=0.11

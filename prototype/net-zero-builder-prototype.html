@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Net Zero Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday learning game: confident, warm, clear working parts
+   IDEA a climate studio: a model building on a site board under India's sun
+   PICTURE isometric building that changes live with every choice, compass + sun
+   COLOUR white / warm night; laterite #d9480f lead, sky #2f7fd8 support, solar #f2a900 accent
+   TYPE Archivo 800 + Archivo
+   LAYOUT laptop: design | scene + chart | results; 720: design | stacked; phone: scene, controls, results + sticky bar */
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#141210);--ink:light-dark(#1d1a17,#f1ece6);--mut:light-dark(#6b645c,#a89f95);
+--pan:light-dark(#f6f3ef,#1e1b18);--line:light-dark(#e3ddd5,#332e29);--lat:#d9480f;--latd:light-dark(#b83a08,#ff7a45);
+--sky:light-dark(#2f7fd8,#5aa2f0);--sol:light-dark(#e09a00,#ffc233);--ok:light-dark(#1f8a4c,#4cc985);--bad:light-dark(#c62828,#ff6b6b);
+--chip:light-dark(#ffffff,#26221e)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 Archivo,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-weight:800;letter-spacing:-.02em;line-height:1.05;margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+.nav{display:flex;align-items:center;gap:16px;padding:12px max(4vw,16px);background:var(--lat);color:#fff}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;background:none;border:0;color:#fff;padding:6px 0}
+.logo svg{width:30px;height:30px}
+.nav .sp{flex:1}
+.nav .tot{font-weight:600;white-space:nowrap}
+.nav a{color:#fff;font-weight:600;text-decoration:none;padding:8px 0}
+.band{padding:clamp(24px,4vw,56px) max(4vw,16px)}
+.hero{background:var(--lat);color:#fff;padding-top:12px}
+.hero h1{font-size:clamp(32px,5vw,52px);max-width:16ch;text-wrap:balance}
+.hero p{max-width:60ch;font-size:17px;margin:14px 0 0;opacity:.95}
+.levels{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:16px;max-width:1240px;margin:-36px auto 0;padding:0 max(4vw,16px)}
+.lc{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:10px;text-align:left;box-shadow:0 2px 0 var(--line)}
+.lc:hover{border-color:var(--lat)}
+.lc .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.lc h3{font-size:22px}
+.zone{font-size:13px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--pan);white-space:nowrap}
+.tbars{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;align-items:end;height:54px}
+.tbars i{display:block;border-radius:3px 3px 0 0}
+.tlab{display:flex;justify-content:space-between;font-size:13px;color:var(--mut)}
+.stars{color:var(--sol);font-size:18px;letter-spacing:2px;white-space:nowrap}
+.off{color:var(--line)}
+.lc .meta{font-size:14px;color:var(--mut)}
+.wrap{max-width:1240px;margin:0 auto}
+/* pipeline */
+.pipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;margin-top:20px;position:relative}
+.st{position:relative;padding:44px 10px 0 0}
+.st::before{content:"";position:absolute;top:15px;left:0;right:0;height:6px;background:var(--lat)}
+.st:first-child::before{left:12px}.st:last-child::before{right:auto;width:12px}
+.st::after{content:"";position:absolute;top:6px;left:0;width:24px;height:24px;border-radius:50%;background:var(--bg);border:5px solid var(--lat)}
+.st.you::after{background:var(--sol);border-color:var(--sol)}
+.st b{display:block;font-size:16px}
+.st span{display:block;font-size:14px;color:var(--mut);margin-top:2px}
+.st .where{display:inline-block;margin-top:8px;font-size:13px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--pan)}
+@media(max-width:760px){.pipe{grid-template-columns:1fr}.st{padding:0 0 18px 44px}.st::before{top:0;bottom:0;left:9px;right:auto;width:6px;height:auto}.st:first-child::before{top:12px;left:9px}.st:last-child::before{height:12px;bottom:auto;width:6px}.st::after{top:0;left:0}}
+.note{font-size:14px;color:var(--mut);margin-top:16px}
+/* game */
+.gbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 22px;padding:12px max(2vw,16px);border-bottom:1px solid var(--line);background:var(--pan)}
+.gbar h2{font-size:24px}
+.gbar .sub{font-size:14px;color:var(--mut)}
+.back{border:1px solid var(--line);background:var(--chip);border-radius:10px;padding:8px 12px;min-height:44px;font-weight:600}
+.meter{min-width:200px;flex:1;max-width:320px}
+.meter .lab{display:flex;justify-content:space-between;font-size:13px;gap:8px}
+.meter .lab b{white-space:nowrap}
+.track{height:10px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:4px}
+.track i{display:block;height:100%;background:var(--ok);border-radius:99px;transition:width .3s}
+.track i.over{background:var(--bad)}
+.dots{display:flex;gap:5px;margin-top:6px}.dots i{width:12px;height:12px;border-radius:50%;background:var(--sky)}.dots i.used{background:var(--line)}
+.tog{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:6px 12px;min-height:44px;background:var(--chip);font-weight:600;font-size:14px}
+.tog[aria-pressed=true]{background:var(--lat);color:#fff;border-color:var(--lat)}
+.btn{background:var(--lat);color:#fff;border:0;border-radius:10px;padding:10px 18px;min-height:44px;font-weight:800}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.alt{background:var(--chip);color:var(--ink);border:1px solid var(--line)}
+.grid{display:grid;grid-template-columns:320px minmax(0,1fr) 350px;grid-template-rows:auto 1fr;grid-template-areas:'panel mid res' 'panel low res';align-items:start}
+.panel{grid-area:panel}.mid{grid-area:mid}.res{grid-area:res}.lower{grid-area:low}
+.panel{padding:16px;border-right:1px solid var(--line);display:grid;gap:16px}
+.og h4{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--mut)}
+.opt{margin-bottom:10px}
+.opt .ol{font-size:15px;font-weight:600;display:flex;gap:6px;align-items:center}
+.pend{width:8px;height:8px;border-radius:50%;background:var(--sol);display:none}
+.opt.chg .pend{display:inline-block}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{border:1px solid var(--line);background:var(--chip);border-radius:9px;padding:7px 10px;min-height:38px;font-size:14px;font-weight:500;text-align:left}
+.chip:hover{border-color:var(--lat)}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.od{font-size:13px;color:var(--mut);margin-top:4px}
+input[type=range]{width:100%;accent-color:var(--lat);height:32px}
+.simbox{position:sticky;bottom:0;background:var(--bg);padding:12px 0 4px;border-top:1px solid var(--line)}
+.simbox .btn{width:100%;font-size:17px}
+.simbox .od{text-align:center}
+.mid{padding:16px;display:grid;gap:16px}
+.scene{position:relative;height:clamp(300px,42vw,440px);border-radius:14px;overflow:hidden;background:var(--pan)}
+.scene svg{position:absolute;inset:0;width:100%;height:100%}
+.scene text{font:600 13px Archivo,sans-serif;paint-order:stroke;stroke:rgba(255,255,255,.85);stroke-width:4px;fill:#2a2622}
+.brief{position:absolute;left:12px;top:12px;max-width:min(330px,60%);background:color-mix(in srgb,var(--bg) 88%,transparent);border-radius:10px;padding:10px 12px;font-size:14px}
+.brief b{display:block;font-size:15px}
+.scan{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:color-mix(in srgb,var(--bg) 55%,transparent);font-weight:800;font-size:17px;text-align:center;padding:16px}
+.scan.on{display:flex}
+.scan::before{content:"";position:absolute;top:0;bottom:0;width:30%;left:-30%;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--sol) 45%,transparent),transparent);animation:sw .7s linear infinite}
+@keyframes sw{to{left:100%}}
+@media(prefers-reduced-motion:reduce){.scan::before{animation:none;display:none}.track i{transition:none}}
+.card{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--bg)}
+.card h3{font-size:18px;margin-bottom:10px}
+.fig{position:relative;height:220px}.fig svg{position:absolute;inset:0;width:100%;height:100%}
+.fig text{font:13px Archivo,sans-serif;fill:var(--mut)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--mut);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.res{padding:16px;border-left:1px solid var(--line);display:grid;gap:14px}
+.stale{font-size:13px;background:color-mix(in srgb,var(--sol) 18%,var(--bg));border-radius:8px;padding:8px 10px}
+.nzrow{display:grid;grid-template-columns:120px minmax(0,1fr);gap:14px;align-items:center}
+.ring{width:120px;height:120px}
+.ring text{font:800 26px Archivo,sans-serif;fill:var(--ink)}
+.ring .s{font:500 12px Archivo,sans-serif;fill:var(--mut)}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.k{font-size:13px;color:var(--mut)}
+.k b{display:block;font-size:22px;color:var(--ink);font-weight:800;white-space:nowrap}
+.k em{font-style:normal;font-size:12px;white-space:nowrap}
+.up{color:var(--bad)}.dn{color:var(--ok)}
+.goals{display:grid;gap:6px;font-size:14px}
+.goal{display:flex;gap:8px;align-items:flex-start}
+.goal .ic{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;background:var(--line);color:var(--mut)}
+.goal.met .ic{background:var(--sol);color:#1d1a17}
+.bars{display:grid;gap:7px}
+.br{display:grid;grid-template-columns:86px minmax(0,1fr) 72px;gap:8px;align-items:center;font-size:14px}
+.br .t{height:12px;border-radius:3px;background:var(--line);overflow:hidden}
+.br .t i{display:block;height:100%}
+.br .v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hint{border-radius:12px;background:color-mix(in srgb,var(--sky) 10%,var(--bg));border:1px solid color-mix(in srgb,var(--sky) 35%,var(--line));padding:12px}
+.hint h3{font-size:16px;margin-bottom:8px}
+.mv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid color-mix(in srgb,var(--sky) 25%,var(--line));font-size:14px}
+.mv:first-of-type{border-top:0}
+.mv small{display:block;color:var(--mut);font-size:13px}
+.mv button{border:1px solid var(--sky);background:var(--bg);color:var(--sky);border-radius:8px;padding:6px 10px;min-height:36px;font-weight:600;font-size:13px}
+.lower{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding:0 16px 16px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font-size:13px;color:var(--mut);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr.cur td{background:color-mix(in srgb,var(--sol) 14%,transparent)}
+td button{border:1px solid var(--line);background:var(--chip);border-radius:7px;padding:4px 9px;font-size:13px}
+.key{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:var(--pan);border-radius:8px;padding:10px;overflow-wrap:anywhere;margin-top:10px}
+.key b{color:var(--lat)}
+.mbar{display:none}
+.modal{position:fixed;inset:0;background:rgba(20,18,16,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.modal.on{display:flex}
+.dlg{background:var(--bg);border-radius:18px;padding:24px;max-width:440px;width:100%;text-align:center;display:grid;gap:12px}
+.dlg .big{font-size:52px;color:var(--sol);letter-spacing:6px}
+.dlg .score{font-size:40px;font-weight:800}
+.dlg .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+@media(max-width:1180px){.grid{grid-template-columns:300px minmax(0,1fr);grid-template-rows:auto 1fr auto;grid-template-areas:'panel mid' 'panel res' 'low low'}.res{border-left:0;padding-top:0}.mid{padding-bottom:0}.lower{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));padding-top:16px}}
+@media(max-width:720px){.grid{grid-template-columns:1fr;grid-template-rows:none;grid-template-areas:'mid' 'panel' 'res' 'low'}.panel{border-right:0;border-bottom:1px solid var(--line)}
+ .simbox{display:none}.mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:10;gap:10px;align-items:center;padding:10px 16px;background:var(--bg);border-top:1px solid var(--line)}
+ .mbar .k b{font-size:17px}.mbar .btn{margin-left:auto}body.game{padding-bottom:76px}.brief{max-width:calc(100% - 24px)}.gbar .meter{min-width:100%}}
+</style>
+</head>
+<body>
+<header class="nav">
+  <button class="logo" id="home" aria-label="Net Zero Builder home">
+    <svg viewBox="0 0 30 30" aria-hidden="true"><circle cx="22" cy="8" r="5" fill="#ffc233"/><path d="M3 27V14l9-6 9 6v13z" fill="#fff"/><path d="M8 27v-7h8v7" fill="#d9480f"/><path d="M5 15l7-4.6 7 4.6" stroke="#1d1a17" stroke-width="1.6" fill="none"/></svg>
+    Net Zero Builder
+  </button>
+  <span class="sp"></span>
+  <a href="#how" id="howlink">How it works</a>
+  <span class="tot" id="tot"></span>
+</header>
+<main id="app"></main>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mt"><div class="dlg" id="dlg"></div></div>
+
+<script>
+{
+// ===== ENGINE (stand-in for the pre-simulated EnergyPlus table) =====
+const DAYS=[31,28,31,30,31,30,31,31,30,31,30,31];
+const MON=['J','F','M','A','M','J','J','A','S','O','N','D'];
+const MONL=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const CITIES={
+  blr:{name:'Bengaluru',zone:'Temperate',lat:13,swing:11,humid:.3,dT:1.6,
+    T:[21.5,23.5,26,27.5,26.5,24,23.5,23.5,23.5,23.5,22,21],
+    G:[5.4,6.2,6.5,6.4,5.9,4.6,4.3,4.4,4.9,4.8,4.9,5.0]},
+  che:{name:'Chennai',zone:'Warm-humid',lat:13,swing:7,humid:1,dT:1.5,
+    T:[25,26.5,28.5,31,33,32.5,31,30.5,30,28.5,26.5,25],
+    G:[5.0,5.9,6.4,6.5,6.3,5.6,5.2,5.3,5.4,4.6,4.1,4.4]},
+  jod:{name:'Jodhpur',zone:'Hot-dry',lat:26,swing:13,humid:0,dT:2.1,
+    T:[17,20,25.5,30.5,34,33.5,31,29.5,29.5,27,22,18],
+    G:[4.6,5.5,6.4,7.1,7.3,6.9,5.8,5.4,5.9,5.6,4.9,4.4]},
+  del:{name:'Delhi',zone:'Composite',lat:28.6,swing:11,humid:.4,dT:2.0,
+    T:[14,17.5,23,29,33,33.5,31,30,29,25.5,20,15.5],
+    G:[3.6,4.6,5.6,6.5,6.8,6.3,5.3,5.1,5.3,4.9,4.0,3.4]},
+  shl:{name:'Shillong',zone:'Cold',lat:25.6,swing:9,humid:.5,dT:1.8,
+    T:[10,12,16,18.5,19.5,20.5,21,21,20,17.5,14,11],
+    G:[4.2,4.7,5.1,5.0,4.7,3.9,3.9,4.1,3.9,4.1,4.1,4.0]},
+  mum:{name:'Mumbai',zone:'Warm-humid',lat:19,swing:6,humid:1,dT:1.5,
+    T:[24,25,27,28.5,30,29,27.5,27.5,27.5,28.5,27.5,25.5],
+    G:[4.9,5.6,6.3,6.6,6.6,4.4,3.6,3.8,4.6,5.1,4.8,4.6]}
+};
+const BTYPES={
+  home:{name:'Home',occH:12,lf:.4,days:1,plugs:4,people:3,swingF:.1,solF:.5,acH:9},
+  school:{name:'School',occH:7,lf:1,days:22/30,plugs:5,people:12,swingF:.25,solF:.7,acH:7},
+  office:{name:'Office',occH:10,lf:1,days:22/30,plugs:9,people:7,swingF:.25,solF:.7,acH:10}
+};
+// Options. sim:true = would be a dimension of the EnergyPlus batch table
+const OPTS=[
+  {id:'orient',g:'Orientation',l:'Long axis',sim:1,c:[
+    {t:'North–South',d:'Long walls face east & west',f:1.3},
+    {t:'NW–SE',d:'Long walls face SW & NE',f:1.14},
+    {t:'NE–SW',d:'Long walls face SE & NW',f:1.12},
+    {t:'East–West',d:'Long walls face north & south',f:1.0}]},
+  {id:'wwr',g:'Windows',l:'Window-to-wall ratio',sim:1,c:[
+    {t:'10%',v:.10,dl:1.3,da:.32},{t:'20%',v:.20,dl:1.0,da:.58},{t:'30%',v:.30,dl:.9,da:.74},{t:'40%',v:.40,dl:.85,da:.83}]},
+  {id:'glaze',g:'Windows',l:'Glazing',sim:1,c:[
+    {t:'Single clear',d:'U 5.8 · SHGC 0.82',u:5.8,s:.82,cost:0,da:0},
+    {t:'Double clear',d:'U 2.8 · SHGC 0.70',u:2.8,s:.70,cost:2600,da:-.02},
+    {t:'Double low-e',d:'U 1.8 · SHGC 0.35',u:1.8,s:.35,cost:4800,da:-.06}]},
+  {id:'shade',g:'Shading',l:'External shading',sim:1,c:[
+    {t:'None',f:1,cost:0,da:0},{t:'Overhang',f:.75,cost:1600,da:-.02},
+    {t:'Overhang + fins',f:.6,cost:3000,da:-.05},{t:'Louvres',f:.45,cost:4500,da:-.1}]},
+  {id:'wall',g:'Walls',l:'Wall construction',sim:1,c:[
+    {t:'230 mm brick',d:'U ≈ 2.0',u:2.0,cost:0,mass:0},
+    {t:'AAC block',d:'U ≈ 0.8',u:.8,cost:350,mass:0},
+    {t:'Brick + insulation',d:'U ≈ 0.5',u:.5,cost:950,mass:0},
+    {t:'Rammed earth / CSEB',d:'U ≈ 1.6 · high mass',u:1.6,cost:200,mass:1}]},
+  {id:'roof',g:'Roof',l:'Roof insulation',sim:1,c:[
+    {t:'Bare RCC',d:'U ≈ 3.0',u:3.0,cost:0},
+    {t:'+50 mm XPS',d:'U ≈ 0.9',u:.9,cost:750},
+    {t:'+100 mm XPS',d:'U ≈ 0.5',u:.5,cost:1250}]},
+  {id:'finish',g:'Roof',l:'Roof finish',sim:1,c:[
+    {t:'Normal',dt:9,cost:0},{t:'Cool roof',d:'White, high reflectance',dt:2.5,cost:180}]},
+  {id:'cool',g:'Cooling',l:'Cooling strategy',sim:1,c:[
+    {t:'AC at 24 °C',set:24,ac:1},{t:'AC at 26 °C',set:26,ac:1},
+    {t:'Mixed-mode',d:'Fans, AC only above 28 °C',set:28,ac:.8,mm:1},
+    {t:'Fans + natural vent',d:'No AC at all',nv:1,ac:0}]},
+  {id:'light',g:'Lighting',l:'Lighting',sim:1,c:[
+    {t:'Fluorescent',lpd:9,cost:0},{t:'LED',lpd:5,cost:250},
+    {t:'LED + daylight sensors',lpd:3.6,cost:600,sens:1}]},
+  {id:'acEff',g:'Cooling',l:'AC efficiency',sim:0,c:[
+    {t:'3-star',cop:3.2,cost:42000},{t:'5-star',cop:4.2,cost:55000},{t:'Inverter VRF',cop:5.0,cost:70000}]}
+];
+const SIMDIMS=OPTS.filter(o=>o.sim).map(o=>o.c.length);
+const TABLE_ROWS=SIMDIMS.reduce((a,b)=>a*b,1);
+const PV_COST=42000, GRID_EF=0.71; // ₹/kWp, kgCO2/kWh (approx. CEA)
+
+const LEVELS=[
+  {id:'blr',city:'blr',type:'home',area:220,floors:2,budget:750000,bench:55,nz:1,
+   title:'A family home',brief:'A two-storey home for a family of five. The developer\'s draft is a glass box with ACs everywhere. Make it net zero and comfortable.'},
+  {id:'che',city:'che',type:'home',area:260,floors:2,budget:1600000,bench:70,nz:1,
+   title:'Sea-breeze house',brief:'Humid nights, harsh sun. Keep the family cool and generate as much as you use over a year.'},
+  {id:'jod',city:'jod',type:'school',area:1200,floors:2,budget:4200000,bench:60,nz:1,
+   title:'Desert school',brief:'400 students, 45 °C afternoons in May. Heavy walls, smart shading and a full roof of solar could do it.'},
+  {id:'del',city:'del',type:'office',area:1500,floors:3,budget:7600000,bench:90,nz:1,
+   title:'Composite-climate office',brief:'Scorching summers, chilly winter mornings. A three-storey office that must still be net zero.'},
+  {id:'shl',city:'shl',type:'home',area:200,floors:2,budget:750000,bench:35,nz:1,
+   title:'Hill-station home',brief:'Here the sun is your friend. Trap winter warmth without overheating in the monsoon.'},
+  {id:'mum',city:'mum',type:'office',area:2000,floors:4,budget:10500000,bench:95,nz:.75,
+   title:'Four-storey Mumbai office',brief:'Small roof, big building, sticky air. Full net zero is out of reach here, so cover 75% of the energy with rooftop solar.'}
+];
+const BASE={orient:0,wwr:3,glaze:0,shade:0,wall:0,roof:0,finish:0,cool:0,light:0,acEff:0,pv:0};
+
+function lookupIndex(ch){let i=0;OPTS.forEach(o=>{if(o.sim)i=i*o.c.length+ch[o.id]});return i}
+function phi(z){const t=1/(1+.2316419*Math.abs(z));const d=.3989423*Math.exp(-z*z/2);
+  const p=d*t*(.3193815+t*(-.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p}
+
+function simulate(lv,ch,future){
+  const c=CITIES[lv.city],b=BTYPES[lv.type],O={};
+  OPTS.forEach(o=>O[o.id]=o.c[ch[o.id]]);
+  const A=lv.area,n=lv.floors,fp=A/n,D=Math.sqrt(fp/2),L=2*D,H=3.3*n,vol=A*3.3;
+  const wall=2*(L+D)*H,Aw=wall*O.wwr.v,Aop=wall-Aw;
+  const UAw=O.wall.u*Aop+O.glaze.u*Aw+.33*.6*vol, UAr=O.roof.u*fp, UA=UAw+UAr;
+  const lpd=O.light.lpd*(O.light.sens?O.wwr.dl*.92:1+(O.wwr.dl-1)*.4);
+  const intW=lpd*b.lf+b.plugs+b.people;
+  const cool=O.cool,cop=O.acEff.cop,swing=c.swing,sd=swing*(O.wall.mass?.22:.32);
+  const massAdj=O.wall.mass?(swing>=10?swing*.14:swing*.04):0;
+  const m={load:[],heat:[],cool:[],heatE:[],fan:[],light:[],plug:[],pv:[],tin:[],comf:[]};
+  const usableRoof=fp*.7,kwp=usableRoof*ch.pv/100*.17;
+  let peak=0,occTot=0,comfTot=0;
+  for(let i=0;i<12;i++){
+    const T=c.T[i]+(future?c.dT:0),G=c.G[i],days=DAYS[i]*b.days,hrs=b.occH*days;
+    const Tocc=T+swing*b.swingF-massAdj;
+    const roofDT=O.finish.dt*G/6;
+    const solar=G*days*Aw*O.glaze.s*O.shade.f*O.orient.f*.3*b.solF; // kWh in occupied hrs
+    const intk=A*intW*hrs/1000;
+    // free-running indoor temp (for comfort / mixed-mode)
+    const Hv=.33*(5-1.5*c.humid)*vol;
+    const gainsW=(solar+intk)*1000/hrs+UAr*roofDT;
+    const Tin=Tocc+gainsW/(UA+Hv);
+    const Trm=T, neutral=.54*Trm+12.83;
+    const up=neutral+2.4+2.2-1.6*c.humid, lo=neutral-4.6;
+    let load=0,heat=0,comf;
+    const acHrs=b.acH*days;
+    const condAt=set=>(UAw*(Tocc-set)+UAr*(Tocc+roofDT-set))*acHrs/1000;
+    const latent=1+.25*c.humid;
+    if(!cool.nv){
+      if(cool.mm){
+        const hotF=1-phi((28-Tin)/sd);
+        load=Math.max(0,condAt(27)+solar+intk)*hotF*latent;
+        comf=.975-.08*hotF-.03*c.humid;
+      }else{
+        load=Math.max(0,condAt(cool.set)+solar+intk)*latent;
+        comf=cool.set===24?.99:.965;
+      }
+      heat=Math.max(0,UA*(18-(T-swing*.15))*hrs/1000-.85*(solar+intk));
+      if(heat>0&&!cool.mm)comf=Math.min(comf,.97);
+    }else{
+      comf=phi((up-Tin)/sd)-phi((lo-Tin)/sd);
+    }
+    const coolE=load/cop, heatE=heat/(cop*.85);
+    const fan=(cool.nv||cool.mm)&&T>21?A*3*hrs/1000:0;
+    const light=A*lpd*b.lf*hrs/1000, plug=A*b.plugs*(b.occH+ (lv.type==='home'?6:2))*days/1000;
+    const pv=kwp*G*DAYS[i]*.77;
+    peak=Math.max(peak,load/acHrs);
+    occTot+=hrs;comfTot+=comf*hrs;
+    m.load.push(load);m.heat.push(heat);m.cool.push(coolE);m.heatE.push(heatE);
+    m.fan.push(fan);m.light.push(light);m.plug.push(plug);m.pv.push(pv);m.tin.push(Tin);m.comf.push(comf);
+  }
+  const sum=a=>a.reduce((x,y)=>x+y,0);
+  const coolE=sum(m.cool),heatE=sum(m.heatE),fanE=sum(m.fan),lightE=sum(m.light),plugE=sum(m.plug),pvE=sum(m.pv);
+  const use=coolE+heatE+fanE+lightE+plugE;
+  const tr=peak*1.6/3.517;
+  // cost (₹) of upgrades + systems
+  let cost=O.wall.cost*Aop+O.roof.cost*fp+O.finish.cost*fp+O.glaze.cost*Aw+O.shade.cost*Aw+O.light.cost*A+kwp*PV_COST;
+  const acCost=cool.nv?0:tr*O.acEff.cost*cool.ac;
+  const fanCost=(cool.nv||cool.mm)?A*120:0;
+  cost+=acCost+fanCost;
+  const monthlyUse=m.cool.map((x,i)=>x+m.heatE[i]+m.fan[i]+m.light[i]+m.plug[i]);
+  return {m,monthlyUse,coolE,heatE,fanE,lightE,plugE,pvE,use,kwp,tr,cost,
+    eui:use/A,daylight:Math.max(.1,O.wwr.da+O.shade.da+O.glaze.da),comfort:comfTot/occTot,nz:pvE/use,co2:Math.max(0,use-pvE)*GRID_EF/1000,
+    Aw,wall,fp,row:lookupIndex(ch)};
+}
+function evaluate(lv,r){
+  const s1=r.eui<=lv.bench,s2=r.comfort>=.9&&r.daylight>=.5,s3=r.nz>=lv.nz-1e-9&&r.cost<=lv.budget;
+  const over=r.cost>lv.budget;
+  let score=350*Math.min(1,r.nz/lv.nz)+350*r.comfort+150*Math.min(1,r.daylight/.6)+150*Math.max(0,1-r.cost/lv.budget);
+  if(over)score*=.6;
+  return {s1,s2,s3,stars:s1+s2+s3,score:Math.round(score),over};
+}
+function bestMoves(lv,ch,future){
+  const base=simulate(lv,ch,future),be=evaluate(lv,base),out=[];
+  OPTS.forEach(o=>{o.c.forEach((cc,k)=>{if(k===ch[o.id])return;
+    const t={...ch,[o.id]:k},r=simulate(lv,t,future),e=evaluate(lv,r);
+    out.push({opt:o,k,ch:t,r,e,d:e.score-be.score});});});
+  [ch.pv+20,ch.pv+40].filter(v=>v<=100).forEach(v=>{const t={...ch,pv:v},r=simulate(lv,t,future),e=evaluate(lv,r);
+    out.push({opt:{id:'pv',l:'Solar PV'},k:v,ch:t,r,e,d:e.score-be.score});});
+  return out.sort((a,b)=>b.d-a.d);
+}
+if(typeof module!=='undefined')module.exports={CITIES,BTYPES,OPTS,LEVELS,BASE,simulate,evaluate,bestMoves,lookupIndex,TABLE_ROWS};
+// ===== END ENGINE =====
+
+
+const $=q=>document.querySelector(q);
+const fmtL=x=>'₹'+(x/1e5).toFixed(1)+' L';
+const fmtN=x=>Math.round(x).toLocaleString('en-IN');
+const pct=x=>Math.round(x*100)+'%';
+const SIMS=8;
+const S={view:'levels',lv:null,ch:null,runs:[],cur:null,future:false,simsLeft:SIMS,busy:false,progress:{}};
+try{S.progress=JSON.parse(localStorage.getItem('nzb-progress')||'{}')}catch(e){}
+const save=()=>{try{localStorage.setItem('nzb-progress',JSON.stringify(S.progress))}catch(e){}};
+const starStr=n=>'★'.repeat(n)+'<span class="off">'+'★'.repeat(3-n)+'</span>';
+const RAMP=[[90,162,240],[242,169,0],[217,72,15]];
+const tempCol=t=>{const k=Math.max(0,Math.min(1,(t-10)/24))*2,i=Math.min(1,Math.floor(k)),f=k-i,a=RAMP[i],b=RAMP[i+1];return `rgb(${a.map((v,j)=>Math.round(v+(b[j]-v)*f)).join(',')})`};
+
+function totals(){let s=0;LEVELS.forEach(l=>s+=(S.progress[l.id]?.stars||0));$('#tot').textContent=`★ ${s} / ${LEVELS.length*3}`}
+
+function pipelineHTML(){
+  const st=[
+    ['Weather files','Hourly EPW for each city, today and 2050 (from CMIP6 NetCDF)','lab server'],
+    ['Shoebox model','One parametric building per type, inputs = the game\'s choices','lab server'],
+    ['EnergyPlus batch',`Every combination: ${fmtN(TABLE_ROWS)} runs per city`,'lab server, once'],
+    ['Results table','Monthly loads, comfort hours, peak load per row (≈4 MB per city)','shipped with the game'],
+    ['Your browser','Finds your row instantly, then adds AC efficiency, solar, cost and score','every click']];
+  return `<div class="pipe">${st.map((s,i)=>`<div class="st${i===4?' you':''}"><b>${s[0]}</b><span>${s[1]}</span><em class="where">${s[2]}</em></div>`).join('')}</div>`;
+}
+
+/* ---------- LEVEL SELECT ---------- */
+function renderLevels(){
+  S.view='levels';document.body.classList.remove('game');
+  $('#app').innerHTML=`
+  <section class="band hero"><div class="wrap" style="padding-bottom:40px">
+    <h1>Design a net-zero building for each of India's climates</h1>
+    <p>Each level hands you a developer's energy-hungry draft. Change the orientation, windows, walls, roof, cooling and solar, run a simulation, and get it to net zero without blowing the budget or cooking the occupants.</p>
+  </div></section>
+  <div class="levels">${LEVELS.map((l,i)=>{const c=CITIES[l.city],b=BTYPES[l.type],p=S.progress[l.id]||{};
+    return `<button class="lc" data-lv="${l.id}">
+      <div class="top"><h3>${i+1}. ${c.name}</h3><span class="zone">${c.zone}</span></div>
+      <div class="tbars" aria-label="Monthly mean temperature">${c.T.map(t=>`<i style="height:${Math.round(t/36*100)}%;background:${tempCol(t)}"></i>`).join('')}</div>
+      <div class="tlab"><span>Jan</span><span>${Math.min(...c.T)}–${Math.max(...c.T)} °C monthly mean</span><span>Dec</span></div>
+      <div><b>${l.title}</b><div class="meta">${b.name} · ${fmtN(l.area)} m² · ${l.floors} floors · budget ${fmtL(l.budget)}${l.nz<1?' · 75% solar target':''}</div></div>
+      <div class="top"><span class="stars">${starStr(p.stars||0)}</span><span class="meta">${p.score?'Best '+p.score:'Not played'}</span></div>
+    </button>`}).join('')}</div>
+  <section class="band" id="how"><div class="wrap">
+    <h2 style="font-size:clamp(26px,3.4vw,36px)">How a browser can "simulate" a building in milliseconds</h2>
+    <p style="max-width:68ch;margin:10px 0 0">The heavy physics runs once, offline. Every design a player could make is simulated ahead of time in EnergyPlus and stored in a table. Pressing Simulate just finds your row and does a little arithmetic on top.</p>
+    ${pipelineHTML()}
+    <p class="note">Prototype: results come from a simplified monthly heat-balance model standing in for the EnergyPlus table, with approximate climate data. Numbers are indicative, not design values.</p>
+  </div></section>`;
+  document.querySelectorAll('.lc').forEach(b=>b.onclick=()=>startLevel(b.dataset.lv));
+  totals();
+}
+
+/* ---------- GAME ---------- */
+function startLevel(id){
+  S.lv=LEVELS.find(l=>l.id===id);S.ch={...BASE};S.runs=[];S.future=false;S.simsLeft=SIMS;
+  commitRun('Developer\'s draft');
+  renderGame();
+}
+function commitRun(label){
+  const r=simulate(S.lv,S.ch,false),e=evaluate(S.lv,r);
+  const run={n:S.runs.length,label,ch:{...S.ch},r,e};S.runs.push(run);S.cur=run;
+}
+const changed=()=>JSON.stringify(S.ch)!==JSON.stringify(S.cur.ch);
+
+function renderGame(){
+  S.view='game';document.body.classList.add('game');
+  const lv=S.lv,c=CITIES[lv.city],b=BTYPES[lv.type];
+  const groups=[...new Set(OPTS.map(o=>o.g))];
+  $('#app').innerHTML=`
+  <div class="gbar">
+    <button class="back" id="back">← Levels</button>
+    <div><h2>${lv.title}</h2><div class="sub">${c.name} · ${c.zone} · ${b.name}, ${fmtN(lv.area)} m², ${lv.floors} floors</div></div>
+    <div class="meter"><div class="lab"><span>Budget used</span><b id="bud"></b></div><div class="track"><i id="budbar"></i></div></div>
+    <div><div class="k" style="font-size:13px">Simulations left</div><div class="dots" id="dots"></div></div>
+    <button class="tog" id="fut" aria-pressed="false">2050 climate</button>
+    <button class="btn" id="submit">Submit design</button>
+  </div>
+  <div class="grid">
+    <aside class="panel" id="panel">
+      ${groups.map(g=>`<div class="og"><h4>${g}</h4>${OPTS.filter(o=>o.g===g).map(o=>`
+        <div class="opt" id="o-${o.id}"><div class="ol">${o.l}<span class="pend" title="Changed since last simulation"></span>${o.sim?'':'<span class="od" style="margin:0 0 0 auto">browser calc</span>'}</div>
+        <div class="chips">${o.c.map((cc,k)=>`<button class="chip" data-o="${o.id}" data-k="${k}">${cc.t}</button>`).join('')}</div>
+        <div class="od" id="d-${o.id}"></div></div>`).join('')}</div>`).join('')}
+      <div class="og"><h4>Solar PV</h4><div class="opt" id="o-pv"><div class="ol">Roof coverage <span class="pend"></span><span class="od" style="margin:0 0 0 auto">browser calc</span></div>
+        <input type="range" id="pv" min="0" max="100" step="5" aria-label="Solar PV roof coverage"><div class="od" id="d-pv"></div></div></div>
+      <div class="simbox"><button class="btn sim" id="sim">Simulate</button><div class="od" id="simnote"></div></div>
+    </aside>
+    <section class="mid">
+      <div class="scene" id="scenebox"><svg id="scene" role="img" aria-label="Isometric view of your building"></svg>
+        <div class="brief"><b>Client brief</b>${lv.brief}</div>
+        <div class="scan" id="scan"></div></div>
+      <div class="card"><h3 id="mtitle">Month by month: energy used vs solar generated</h3>
+        <div class="fig"><svg id="mchart"></svg></div>
+        <div class="legend"><span><i style="background:var(--sky)"></i>Cooling</span><span><i style="background:var(--lat)"></i>Heating</span><span><i style="background:#9a948c"></i>Fans, lights, plugs</span><span><i style="background:var(--sol);border-radius:50%"></i>Solar generation</span></div>
+      </div>
+    </section>
+    <aside class="res" id="res"></aside>
+    <div class="lower">
+      <div class="card"><h3>Run history</h3><div class="scroll"><table id="hist"></table></div></div>
+      <div class="card"><h3>Behind the scenes</h3><div id="bts"></div></div>
+    </div>
+  </div>
+  <div class="mbar" id="mbar"></div>`;
+  $('#back').onclick=renderLevels;
+  $('#submit').onclick=openSubmit;
+  $('#fut').onclick=()=>{S.future=!S.future;update()};
+  $('#sim').onclick=doSim;
+  document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{S.ch[b.dataset.o]=+b.dataset.k;update()});
+  $('#pv').oninput=e=>{S.ch.pv=+e.target.value;update()};
+  const ro1=new ResizeObserver(drawScene);ro1.observe($('#scene'));
+  const ro2=new ResizeObserver(drawChart);ro2.observe($('#mchart'));
+  update();window.scrollTo(0,0);
+}
+
+function doSim(){
+  if(S.busy||!changed()||S.simsLeft<=0)return;
+  S.busy=true;S.simsLeft--;
+  const row=lookupIndex(S.ch);
+  const sc=$('#scan');sc.textContent=`Looking up row ${fmtN(row+1)} of ${fmtN(TABLE_ROWS)}…`;sc.classList.add('on');
+  const fast=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  setTimeout(()=>{commitRun('Run '+S.runs.length);sc.classList.remove('on');S.busy=false;update()},fast?60:750);
+}
+
+function view(){ // result shown (today or 2050)
+  const today=S.cur.r;if(!S.future)return {r:today,e:S.cur.e,t:null};
+  const r=simulate(S.lv,S.cur.ch,true);return {r,e:evaluate(S.lv,r),t:today};
+}
+
+function update(){
+  const lv=S.lv,ch=S.ch,cur=S.cur.ch;
+  OPTS.forEach(o=>{
+    document.querySelectorAll(`.chip[data-o="${o.id}"]`).forEach(b=>b.setAttribute('aria-pressed',+b.dataset.k===ch[o.id]));
+    $('#o-'+o.id).classList.toggle('chg',ch[o.id]!==cur[o.id]);
+    const cc=o.c[ch[o.id]];$('#d-'+o.id).textContent=cc.d||'';
+  });
+  const live=simulate(lv,ch,false);
+  $('#pv').value=ch.pv;$('#o-pv').classList.toggle('chg',ch.pv!==cur.pv);
+  $('#d-pv').textContent=`${ch.pv}% of usable roof · ${live.kwp.toFixed(1)} kWp · ${fmtL(live.kwp*PV_COST)}`;
+  // budget (cost is a calculator, so it updates live)
+  const u=live.cost/lv.budget;$('#bud').textContent=`${fmtL(live.cost)} of ${fmtL(lv.budget)}`;
+  const bb=$('#budbar');bb.style.width=Math.min(100,u*100)+'%';bb.classList.toggle('over',u>1);
+  $('#dots').innerHTML=Array.from({length:SIMS},(_,i)=>`<i class="${i<SIMS-S.simsLeft?'used':''}"></i>`).join('');
+  $('#fut').setAttribute('aria-pressed',S.future);
+  const ok=changed()&&S.simsLeft>0;
+  document.querySelectorAll('.sim').forEach(b=>{b.disabled=!ok;b.textContent=S.simsLeft>0?`Simulate (${S.simsLeft} left)`:'No simulations left'});
+  $('#simnote').textContent=changed()?'Design changed since last run':'Change something to run a new simulation';
+  drawScene();drawChart();renderResults();renderHist();renderBTS();renderMbar();
+}
+
+function renderResults(){
+  const lv=S.lv,{r,e,t}=view();
+  const d=(v,tv,good,f)=>{if(!t)return'';const x=v-tv;if(Math.abs(x)<1e-6)return'';const bad=good==='low'?x>0:x<0;return ` <em class="${bad?'up':'dn'}">${x>0?'+':'−'}${f(Math.abs(x))} vs today</em>`};
+  const ringR=46,circ=2*Math.PI*ringR,f=Math.min(1,r.nz),tgt=lv.nz;
+  const goals=[[e.s1,`Energy use ≤ ${lv.bench} kWh/m²·yr`],[e.s2,'Comfort ≥ 90% of hours and daylight ≥ 50%'],[e.s3,`Solar covers ${lv.nz<1?'75%':'100%'} of use, within budget`]];
+  const rows=[['Cooling',r.coolE,'var(--sky)'],['Heating',r.heatE,'var(--lat)'],['Fans',r.fanE,'#9a948c'],['Lighting',r.lightE,'#9a948c'],['Plug loads',r.plugE,'#9a948c'],['Solar',r.pvE,'var(--sol)']];
+  const mx=Math.max(...rows.map(x=>x[1]),1);
+  let hints='';
+  if(!S.future){
+    const mv=bestMoves(lv,S.cur.ch,false).filter(m=>m.d>0&&!(m.e.over&&!S.cur.e.over)).slice(0,3);
+    hints=`<div class="hint"><h3>Best next moves</h3>${mv.length?mv.map((m,i)=>{
+      const name=m.opt.id==='pv'?`Solar PV to ${m.k}%`:`${m.opt.l}: ${m.opt.c[m.k].t}`;
+      const dE=m.r.eui-S.cur.r.eui,dC=m.r.cost-S.cur.r.cost;
+      return `<div class="mv"><div><b>${name}</b><small>+${m.d} pts · EUI ${dE>0?'+':'−'}${Math.abs(dE).toFixed(0)} · ${dC>=0?'+':'−'}${fmtL(Math.abs(dC))}</small></div><button data-mv="${i}">Apply</button></div>`}).join('')
+      :'<div class="od">No single change improves this design. Try a bigger combined move.</div>'}</div>`;
+    S._moves=mv;
+  }else{
+    hints=`<div class="hint"><h3>2050 stress test</h3><div class="od" style="color:var(--ink)">Same design, weather about ${CITIES[lv.city].dT} °C warmer. Built today, this building will still be in use in 2050. A design that only just passes now may fail then.</div></div>`;
+  }
+  $('#res').innerHTML=`
+    ${changed()?`<div class="stale">Showing <b>${S.cur.label}</b>. You've changed the design since: simulate to see the new results.</div>`:''}
+    ${S.future?`<div class="stale">2050 climate: results for ${S.cur.label} with future weather.</div>`:''}
+    <div class="nzrow">
+      <svg class="ring" viewBox="0 0 120 120" aria-label="Net zero ${pct(r.nz)}">
+        <circle cx="60" cy="60" r="${ringR}" fill="none" stroke="var(--line)" stroke-width="13"/>
+        <circle cx="60" cy="60" r="${ringR}" fill="none" stroke="var(--sol)" stroke-width="13" stroke-linecap="round" stroke-dasharray="${circ*f} ${circ}" transform="rotate(-90 60 60)"/>
+        ${tgt<1?`<line x1="60" y1="7" x2="60" y2="21" stroke="var(--ink)" stroke-width="2" transform="rotate(${tgt*360} 60 60)"/>`:''}
+        <text x="60" y="64" text-anchor="middle">${pct(r.nz)}</text><text class="s" x="60" y="82" text-anchor="middle">net zero</text></svg>
+      <div><div class="k">Score</div><div style="font-size:34px;font-weight:800;line-height:1">${e.score}</div><div class="stars" style="margin-top:4px">${starStr(e.stars)}</div></div>
+    </div>
+    <div class="kpis">
+      <div class="k">Energy use<b>${r.eui.toFixed(0)}<span style="font-size:13px;font-weight:500"> kWh/m²·yr</span></b>${d(r.eui,t?.eui,'low',x=>x.toFixed(0))||`<em>target ≤ ${lv.bench}</em>`}</div>
+      <div class="k">Comfortable hours<b>${pct(r.comfort)}</b>${d(r.comfort,t?.comfort,'high',x=>Math.round(x*100)+' pts')||'<em>IMAC adaptive band</em>'}</div>
+      <div class="k">Daylight<b>${pct(r.daylight)}</b><em>of floor well daylit</em></div>
+      <div class="k">Cost<b class="${e.over?'up':''}">${fmtL(r.cost)}</b><em>${e.over?'over budget':'of '+fmtL(lv.budget)}</em></div>
+      <div class="k">Solar<b>${r.kwp.toFixed(1)} kWp</b><em>${fmtN(r.pvE)} kWh/yr</em></div>
+      <div class="k">Grid CO₂<b>${r.co2.toFixed(1)} t</b><em>per year, net</em></div>
+    </div>
+    <div class="goals">${goals.map(g=>`<div class="goal${g[0]?' met':''}"><span class="ic">${g[0]?'★':'·'}</span><span>${g[1]}</span></div>`).join('')}</div>
+    <div class="card" style="padding:14px"><h3 style="font-size:16px">Annual energy, kWh</h3><div class="bars">${rows.map(x=>`<div class="br"><span>${x[0]}</span><span class="t"><i style="width:${x[1]/mx*100}%;background:${x[2]}"></i></span><span class="v">${fmtN(x[1])}</span></div>`).join('')}</div></div>
+    ${hints}`;
+  document.querySelectorAll('[data-mv]').forEach(b=>b.onclick=()=>{S.ch={...S._moves[+b.dataset.mv].ch};update()});
+}
+
+function renderHist(){
+  $('#hist').innerHTML=`<thead><tr><th>Run</th><th class="n">EUI</th><th class="n">Comfort</th><th class="n">Net zero</th><th class="n">Cost</th><th class="n">Score</th><th>Stars</th><th></th></tr></thead><tbody>${
+    S.runs.map(u=>`<tr class="${u===S.cur?'cur':''}"><td>${u.label}</td><td class="n">${u.r.eui.toFixed(0)}</td><td class="n">${pct(u.r.comfort)}</td><td class="n">${pct(u.r.nz)}</td><td class="n">${fmtL(u.r.cost)}</td><td class="n"><b>${u.e.score}</b></td><td><span class="stars" style="font-size:14px">${starStr(u.e.stars)}</span></td><td>${u===S.cur?'':`<button data-run="${u.n}">Restore</button>`}</td></tr>`).join('')}</tbody>`;
+  document.querySelectorAll('[data-run]').forEach(b=>b.onclick=()=>{const u=S.runs[+b.dataset.run];S.cur=u;S.ch={...u.ch};update()});
+}
+
+function renderBTS(){
+  const ch=S.cur.ch,r=S.cur.r,O=OPTS.filter(o=>o.sim);
+  const ac=OPTS.find(o=>o.id==='acEff').c[ch.acEff];
+  $('#bts').innerHTML=`<div style="font-size:14px">For <b>${S.cur.label}</b>, the game turns your ${O.length} simulated choices into one row number, then calculates the rest in the browser.</div>
+   <div class="key">key [${O.map(o=>`<b>${ch[o.id]}</b>`).join(', ')}]<br>dims [${O.map(o=>o.c.length).join(', ')}]<br>→ row <b>${fmtN(r.row+1)}</b> of ${fmtN(TABLE_ROWS)}<br><br>
+   cooling kWh = load ${fmtN(r.coolE*ac.cop)} ÷ COP ${ac.cop} = <b>${fmtN(r.coolE)}</b><br>
+   solar kWh = ${r.kwp.toFixed(1)} kWp × city yield × 0.77 = <b>${fmtN(r.pvE)}</b><br>
+   cost = upgrades + AC ${r.tr.toFixed(1)} TR + PV = <b>${fmtL(r.cost)}</b></div>
+   <p class="note" style="margin-top:10px">Prototype: a simplified monthly heat-balance model stands in for the EnergyPlus table. Climate data and costs are approximate.</p>`;
+}
+
+function renderMbar(){
+  const {r,e}=view();
+  $('#mbar').innerHTML=`<div class="k">Net zero<b>${pct(r.nz)}</b></div><div class="k">EUI<b>${r.eui.toFixed(0)}</b></div><div class="k">Score<b>${e.score}</b></div><button class="btn sim" ${changed()&&S.simsLeft>0?'':'disabled'}>Simulate</button>`;
+  $('#mbar .sim').onclick=doSim;
+}
+
+/* ---------- SCENE ---------- */
+function drawScene(){
+  const svg=$('#scene');if(!svg||S.view!=='game')return;
+  const W=svg.clientWidth||600,H=svg.clientHeight||380;
+  const lv=S.lv,ch=S.ch,O={};OPTS.forEach(o=>O[o.id]=o.c[ch[o.id]]);
+  const n=lv.floors,fp=lv.area/n,D=Math.sqrt(fp/2),L=2*D,Hb=3.3*n,m=Math.max(L,D)*.42;
+  const C=.866,Sn=.5;
+  const s=Math.min(W*.9/((L+D+2*m)*C),H*.78/((L+D+2*m)*Sn+Hb));
+  const cx=W*.5-(L-D)/2*C*s+(W>640?W*.08:0);
+  const topOff=Math.max(2*m*Sn,Hb)*s,cy=H*.58-((L+D+2*m)*Sn*s-topOff)/2;
+  const P=(x,y,z)=>[cx+(x-y)*C*s,cy+(x+y)*Sn*s-z*s];
+  const pts=a=>a.map(p=>P(...p).map(v=>v.toFixed(1)).join(',')).join(' ');
+  const poly=(a,fill,ex='')=>`<polygon points="${pts(a)}" fill="${fill}" ${ex}/>`;
+  const th=[90,45,135,0][ch.orient]*Math.PI/180; // bearing of building x-axis
+  const fut=S.future;
+  const ground={jod:'#e6cf9f',del:'#cfd59a',shl:'#9cc58a',blr:'#b5d39a',che:'#b8d79c',mum:'#a9cf93'}[lv.city];
+  const wallC=['#b9583e','#dcd8d0','#eee5d6','#c4935c'][ch.wall];
+  const pat=['brick','aac','plaster','earth'][ch.wall];
+  const glass=['#a7d8f2','#86c1e3','#6f9fb8'][ch.glaze];
+  const roofC=ch.finish?'#f8f8f4':'#9b968e';
+  let o='';
+  o+=`<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${fut?'#f3b27a':'#8cc4f2'}"/><stop offset="1" stop-color="${fut?'#fde6c8':'#e8f4fd'}"/></linearGradient>
+   <pattern id="brick" width="12" height="7" patternUnits="userSpaceOnUse"><rect width="12" height="7" fill="${wallC}"/><path d="M0 6.5H12M6 0V3.2M0 3.2H12M3 3.2V6.5M9 3.2V6.5" stroke="rgba(255,255,255,.25)" stroke-width="1"/></pattern>
+   <pattern id="aac" width="20" height="10" patternUnits="userSpaceOnUse"><rect width="20" height="10" fill="${wallC}"/><path d="M0 9.5H20M10 0V5M0 5H20" stroke="rgba(0,0,0,.08)"/></pattern>
+   <pattern id="plaster" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="${wallC}"/></pattern>
+   <pattern id="earth" width="30" height="8" patternUnits="userSpaceOnUse"><rect width="30" height="8" fill="${wallC}"/><path d="M0 3Q8 2 15 3.5T30 3M0 7Q10 6 18 7.2T30 6.6" stroke="rgba(90,50,20,.22)" fill="none"/></pattern></defs>`;
+  o+=`<rect width="${W}" height="${H}" fill="url(#sky)"/>`;
+  // sun towards south
+  const sx=(-Math.cos(th)-Math.sin(th))*C,sunX=W/2+Math.sign(sx||1)*Math.min(W*.36,W/2-50)*(Math.abs(sx)>.2?1:.15),sunY=Math.max(46,H*.14);
+  o+=`<circle cx="${sunX}" cy="${sunY}" r="${26+fut*6}" fill="${fut?'#ff9a3c':'#ffc93d'}" opacity=".95"/><circle cx="${sunX}" cy="${sunY}" r="${44+fut*8}" fill="${fut?'#ff9a3c':'#ffd968'}" opacity=".25"/>`;
+  // ground + shadow
+  o+=poly([[-m,-m,0],[L+m,-m,0],[L+m,D+m,0],[-m,D+m,0]],ground);
+  o+=poly([[-.6,-.6,0],[L+1.2,-.6,0],[L+1.2,D+1.6,0],[-.6,D+1.6,0]],'rgba(40,30,20,.18)');
+  // tree
+  const tp=P(-m*.55,D+m*.15,0),tr=Math.max(10,s*2.2);
+  o+=`<rect x="${tp[0]-2}" y="${tp[1]-tr*1.2}" width="4" height="${tr*1.2}" fill="#6b4a2b"/><circle cx="${tp[0]}" cy="${tp[1]-tr*1.5}" r="${tr}" fill="#4f8f3a"/><circle cx="${tp[0]-tr*.35}" cy="${tp[1]-tr*1.7}" r="${tr*.55}" fill="#64a64a"/>`;
+  // walls
+  o+=poly([[0,D,0],[L,D,0],[L,D,Hb],[0,D,Hb]],`url(#${pat})`);
+  o+=poly([[L,0,0],[L,D,0],[L,D,Hb],[L,0,Hb]],`url(#${pat})`);
+  o+=poly([[L,0,0],[L,D,0],[L,D,Hb],[L,0,Hb]],'rgba(0,0,0,.16)');
+  for(let f=1;f<n;f++)o+=`<polyline points="${pts([[0,D,f*3.3],[L,D,f*3.3],[L,0,f*3.3]])}" fill="none" stroke="rgba(0,0,0,.15)"/>`;
+  // windows
+  const hw=1.5,pr=.7;
+  const facade=(len,face)=>{let w='';const nW=Math.max(2,Math.round(len/3.4)),bay=len/nW,ww=Math.min(bay*.9,O.wwr.v*3.3*bay/hw);
+    const Q=(a,z,dn)=>face==='y'?[a,D+dn,z]:[L+dn,a,z];
+    for(let f=0;f<n;f++)for(let k=0;k<nW;k++){const a0=k*bay+(bay-ww)/2,a1=a0+ww,z0=f*3.3+.9,z1=z0+hw;
+      w+=poly([Q(a0,z0,0),Q(a1,z0,0),Q(a1,z1,0),Q(a0,z1,0)],glass,'stroke="rgba(30,40,50,.55)" stroke-width="1"');
+      w+=`<polyline points="${pts([Q(a0+ww*.12,z0+hw*.35,0),Q(a0+ww*.35,z1-hw*.12,0)])}" stroke="rgba(255,255,255,.6)" stroke-width="1.5" fill="none"/>`;
+      if(ch.shade>=1){const t=z1+.12;w+=poly([Q(a0-.25,t,0),Q(a1+.25,t,0),Q(a1+.25,t,pr),Q(a0-.25,t,pr)],'#e9e6e0','stroke="rgba(0,0,0,.25)" stroke-width=".8"')}
+      if(ch.shade===2){[a0-.08,a1+.08].forEach(a=>{w+=poly([Q(a,z0-.1,0),Q(a,z0-.1,pr*.8),Q(a,z1+.12,pr*.8),Q(a,z1+.12,0)],'#d9d5ce','stroke="rgba(0,0,0,.25)" stroke-width=".8"')})}
+      if(ch.shade===3){for(let j=1;j<=4;j++){const z=z0+hw*j/5;w+=`<polyline points="${pts([Q(a0,z,.3),Q(a1,z,.3)])}" stroke="#7a7268" stroke-width="${Math.max(1.5,s*.14)}" fill="none"/>`}}
+    }return w};
+  o+=facade(L,'y')+facade(D,'x');
+  // AC units
+  if(!O.cool.nv){const cnt=O.cool.mm?Math.max(1,Math.ceil(n/2)):n*2;
+    for(let i=0;i<cnt;i++){const y=D*(i%2?.78:.12),z=Math.floor(i/(O.cool.mm?1:2))*3.3*(O.cool.mm?2:1)+.3;
+      o+=poly([[L+.05,y,z],[L+.05,y+.9,z],[L+.05,y+.9,z+.6],[L+.05,y,z+.6]],'#cfd3d6','stroke="#7b8287" stroke-width=".8"');
+      const cc=P(L+.05,y+.45,z+.3);o+=`<circle cx="${cc[0]}" cy="${cc[1]}" r="${Math.max(2,s*.22)}" fill="none" stroke="#7b8287"/>`}}
+  // roof
+  const par=.25+ch.roof*.18;
+  o+=poly([[0,0,Hb],[L,0,Hb],[L,D,Hb],[0,D,Hb]],roofC,'stroke="rgba(0,0,0,.25)"');
+  o+=poly([[0,D,Hb],[L,D,Hb],[L,D,Hb+par],[0,D,Hb+par]],ch.finish?'#ffffff':'#b3aea6');
+  o+=poly([[L,0,Hb],[L,D,Hb],[L,D,Hb+par],[L,0,Hb+par]],ch.finish?'#e6e6e1':'#9c978f');
+  // PV panels
+  const ins=1,cols=Math.max(1,Math.floor((L-2*ins)/1.1)),rows=Math.max(1,Math.floor((D-2*ins)/1.5)),tot=cols*rows,fill=Math.round(tot*ch.pv/100);
+  for(let i=0;i<fill;i++){const r=Math.floor(i/cols),c=i%cols,x=ins+c*1.1,y=ins+r*1.5;
+    o+=poly([[x,y,Hb+.35],[x+1,y,Hb+.35],[x+1,y+1.15,Hb+.15],[x,y+1.15,Hb+.15]],'#1f3c6e','stroke="#7fa3d9" stroke-width=".6"')}
+  // labels
+  const face=b=>['N','NE','E','SE','S','SW','W','NW'][Math.round(((b%360)+360)%360/45)%8];
+  const lb1=P(L/2,D+m*.62,0),lb2=P(L+m*.62,D/2,0);
+  const thd=th*180/Math.PI;
+  o+=`<text x="${lb1[0]}" y="${lb1[1]}" text-anchor="middle">faces ${face(thd+90)}</text><text x="${lb2[0]}" y="${lb2[1]}" text-anchor="middle">faces ${face(thd)}</text>`;
+  // compass
+  const kx=44,ky=H-46,R=26,dir=(b)=>{const bx=b*Math.PI/180;const nx=Math.cos(th-bx),ny=-Math.sin(th-bx);return [(nx-ny)*C,(nx+ny)*Sn]};
+  const nd=dir(0),len=Math.hypot(...nd);
+  o+=`<ellipse cx="${kx}" cy="${ky}" rx="${R+6}" ry="${(R+6)*.6}" fill="rgba(255,255,255,.8)" stroke="rgba(0,0,0,.2)"/>`;
+  ['N','E','S','W'].forEach((t,i)=>{const v=dir(i*90),q=Math.hypot(...v)||1;const ex=kx+v[0]/q*R,ey=ky+v[1]/q*R*.6;
+    o+=`<line x1="${kx}" y1="${ky}" x2="${ex}" y2="${ey}" stroke="${t==='N'?'#d9480f':'#666'}" stroke-width="${t==='N'?3:1.4}"/>`;
+    if(t==='N')o+=`<text x="${kx+v[0]/q*(R+14)}" y="${ky+v[1]/q*(R+14)*.6+4}" text-anchor="middle" style="fill:#d9480f">N</text>`});
+  if(fut)o+=`<text x="${W-14}" y="${H-16}" text-anchor="end">2050 weather · +${CITIES[lv.city].dT} °C</text>`;
+  svg.innerHTML=o;
+}
+
+/* ---------- MONTHLY CHART ---------- */
+function drawChart(){
+  const svg=$('#mchart');if(!svg||S.view!=='game')return;
+  const W=svg.clientWidth||500,H=svg.clientHeight||220,{r}=view();
+  const ml=48,mr=8,mt=10,mb=24,iw=W-ml-mr,ih=H-mt-mb;
+  const use=r.monthlyUse,mx=Math.max(...use,...r.m.pv)*1.08||1;
+  const step=mx>20000?10000:mx>8000?4000:mx>4000?2000:mx>1500?500:mx>600?200:100;
+  const y=v=>mt+ih-v/mx*ih,bw=iw/12;
+  let o='';
+  for(let v=0;v<=mx;v+=step)o+=`<line x1="${ml}" x2="${W-mr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${ml-6}" y="${y(v)+4}" text-anchor="end">${v>=1000?(v/1000)+'k':v}</text>`;
+  r.m.cool.forEach((c,i)=>{const x=ml+i*bw+bw*.18,w=bw*.64;const h=r.m.heatE[i],ot=use[i]-c-h;
+    let yy=y(0);[[ot,'#9a948c'],[h,'var(--lat)'],[c,'var(--sky)']].forEach(([v,col])=>{const hh=v/mx*ih;yy-=hh;if(hh>0)o+=`<rect x="${x}" y="${yy}" width="${w}" height="${hh}" fill="${col}"/>`});
+    o+=`<text x="${ml+i*bw+bw/2}" y="${H-6}" text-anchor="middle">${W<520?MON[i]:MONL[i]}</text>`});
+  const pp=r.m.pv.map((v,i)=>[ml+i*bw+bw/2,y(v)]);
+  if(r.pvE>0){o+=`<polyline points="${pp.map(p=>p.join(',')).join(' ')}" fill="none" stroke="var(--sol)" stroke-width="3"/>`;
+    o+=pp.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="var(--sol)" stroke="var(--bg)" stroke-width="1.5"/>`).join('')}
+  o+=`<text x="${ml}" y="${mt+12}" style="fill:var(--ink)" dx="6">kWh per month</text>`;
+  svg.innerHTML=o;
+  $('#mtitle').textContent=r.pvE>=r.use?'Month by month: solar covers the year':r.pvE>0?'Month by month: where solar falls short':'Month by month: energy used, no solar yet';
+}
+
+/* ---------- SUBMIT ---------- */
+function openSubmit(){
+  const lv=S.lv,run=S.cur,e=run.e,p=S.progress[lv.id]||{};
+  const better=!p.score||e.score>p.score;
+  if(better){S.progress[lv.id]={stars:Math.max(e.stars,p.stars||0),score:e.score};save();totals()}
+  const fr=simulate(lv,run.ch,true),fe=evaluate(lv,fr);
+  const i=LEVELS.indexOf(lv),next=LEVELS[i+1];
+  $('#dlg').innerHTML=`<h2 id="mt">${e.stars===3?'Net zero achieved':e.stars?'Design submitted':'Not there yet'}</h2>
+   <div class="big">${starStr(e.stars)}</div><div class="score">${e.score} pts</div>
+   <div class="od" style="color:var(--ink)">${run.label}: ${pct(run.r.nz)} net zero · ${pct(run.r.comfort)} comfortable · ${fmtL(run.r.cost)}${better&&p.score?' · new best!':''}</div>
+   <div class="stale">In 2050 weather this design scores <b>${fe.score}</b> (${fe.stars}★): ${pct(fr.nz)} net zero, ${pct(fr.comfort)} comfortable.</div>
+   <div class="row"><button class="btn alt" id="mk">Keep designing</button>${next?`<button class="btn" id="mn">Next: ${CITIES[next.city].name}</button>`:`<button class="btn" id="ml">All levels</button>`}</div>`;
+  $('#modal').classList.add('on');
+  const close=()=>$('#modal').classList.remove('on');
+  $('#mk').onclick=close;
+  if(next)$('#mn').onclick=()=>{close();startLevel(next.id)};else $('#ml').onclick=()=>{close();renderLevels()};
+  $('#mk').focus();
+}
+$('#modal').onclick=e=>{if(e.target.id==='modal')$('#modal').classList.remove('on')};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#modal').classList.remove('on')});
+$('#home').onclick=renderLevels;
+$('#howlink').onclick=e=>{if(S.view!=='levels'){e.preventDefault();renderLevels();setTimeout(()=>$('#how').scrollIntoView(),0)}};
+
+renderLevels();
+}
+</script>
+</body>
+</html>
