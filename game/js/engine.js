@@ -66,17 +66,25 @@ export function evaluate(city, design, settings) {
   };
 }
 
-// Stars and score for one evaluated design against the level's goals.
+// Stars and score (out of 1000) for one evaluated design against the level's goals.
+//  net zero 350 · comfort 250 (full marks at the target, none at 75 %)
+//  energy use 200 (full marks at the target, none at 80 kWh/m²·yr) · budget 200 (100 for staying within it + up to 100 for money left)
+const EUI_ZERO = 80;
 export function score(level, r) {
   const s1 = r.eui <= level.eui_target;
   const s2 = r.comfort >= level.comfort_target;
   const over = r.cost > level.budget_rs;
   const s3 = r.nz >= 1 - 1e-9 && !over;
-  let pts = 350 * Math.min(1, r.nz) + 350 * r.comfort / 100
-          + 150 * Math.min(1, level.eui_target / Math.max(r.eui, 1))
-          + 150 * Math.max(0, 1 - r.cost / level.budget_rs);
-  if (over) pts *= 0.6;
-  return { s1, s2, s3, stars: s1 + s2 + s3, score: Math.round(pts), over };
+  const clamp = x => Math.min(1, Math.max(0, x));
+  const parts = {
+    nz: 350 * clamp(r.nz),
+    comfort: 250 * clamp((r.comfort - 75) / (level.comfort_target - 75)),
+    energy: 200 * clamp((EUI_ZERO - r.eui) / (EUI_ZERO - level.eui_target)),
+    budget: over ? 0 : 200 * (0.5 + 0.5 * clamp(1 - r.cost / level.budget_rs)),
+  };
+  let pts = parts.nz + parts.comfort + parts.energy + parts.budget;
+  if (over) pts *= 0.7;
+  return { s1, s2, s3, stars: s1 + s2 + s3, score: Math.round(pts), over, parts };
 }
 
 // Every single change from the current design, ranked by score gain.
