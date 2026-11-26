@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>3D scene test</title>
+<!-- Developer page: renders one design full-screen for checking and screenshots.
+     Example: dev/scene.html?wall=aac&shading=louvres&pv=60&cam=19,12,21 -->
+<style>html,body{margin:0;height:100%;background:#bcdcf3}#v{position:fixed;inset:0}#info{position:fixed;left:8px;top:8px;font:13px system-ui;background:#fffc;padding:6px 8px;border-radius:6px}</style>
+<script type="importmap">{ "imports": { "three": "../vendor/three.module.min.js" } }</script>
+</head>
+<body>
+<div id="v"></div><div id="info">loading…</div>
+<script type="module">
+import { createScene } from '../js/scene3d.js';
+const meta = await fetch('../data/blr.json').then(r => r.json());
+const q = new URLSearchParams(location.search);
+const design = { ...meta.base_design, ac: '3star', pv: 0 };
+for (const [k, v] of q) if (k in design) design[k] = k === 'pv' ? +v : v;
+const s = createScene(document.getElementById('v'), meta, { preserveDrawingBuffer: true });
+if (q.get('cam')) s.camera.position.set(...q.get('cam').split(',').map(Number));
+if (q.get('target')) s.controls.target.set(...q.get('target').split(',').map(Number));
+if (q.get('sun')) s.setSun(...q.get('sun').split(',').map(Number));
+s.update(design);
+s.renderNow();
+document.getElementById('info').textContent = Object.entries(design).map(([k, v]) => `${k}=${v}`).join(' ');
+document.title = 'ready';
+</script>
+</body>
+</html>

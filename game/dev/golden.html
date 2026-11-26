@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>golden-rule test</title>
+<!-- Checks that every window and shading device in the 3D scene sits exactly where EnergyPlus simulated it.
+     Reference: dev/golden_ref.json from `python sim/make_golden_ref.py`. Tolerance 1 mm. -->
+<script type="importmap">{ "imports": { "three": "../vendor/three.module.min.js" } }</script>
+<style>body{font:14px ui-monospace,monospace;margin:16px}#v{width:400px;height:250px}</style>
+</head>
+<body>
+<pre id="out">running…</pre><div id="v"></div>
+<script type="module">
+import * as THREE from 'three';
+import { createScene } from '../js/scene3d.js';
+const meta = await fetch('../data/blr.json').then(r => r.json());
+const ref = await fetch('golden_ref.json').then(r => r.json());
+const s = createScene(document.getElementById('v'), meta);
+const lines = []; let worst = 0, fails = 0;
+const boxOf = m => { const b = new THREE.Box3().setFromObject(m); return [b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z]; };
+const err = (a, b) => Math.max(...a.map((v, i) => Math.abs(v - b[i])));
+for (const r of ref) {
+  s.update({ ...r.design, ac: '3star', pv: 0 });
+  s.scene.updateMatrixWorld(true);
+  const found = { glass: [], overhang: [], louvres: [] };
+  s.scene.traverse(o => { const k = o.userData.kind; if (k) found[k === 'louvre' ? 'louvres' : k].push(boxOf(o)); });
+  const check = (label, expected, got) => {
+    let e = 0;
+    if (expected.length !== got.length) { fails++; lines.push(`FAIL ${label}: expected ${expected.length}, found ${got.length}`); return; }
+    for (const x of expected) e = Math.max(e, Math.min(...got.map(g => err(x, g))));
+    worst = Math.max(worst, e);
+    const ok = e < 0.001; fails += !ok;
+    lines.push(`${ok ? 'PASS' : 'FAIL'} ${label}: ${expected.length} items, max error ${(e * 1000).toFixed(3)} mm`);
+  };
+  const d = r.design, name = `${d.orientation} wwr ${d.wwr_ns}/${d.wwr_ew} ${d.shading}`;
+  check(`${name} | windows`, r.glass, found.glass);
+  for (const t of ['overhang', 'louvres']) {
+    const exp = r.shading.filter(x => x.type === t).map(x => x.box);
+    if (exp.length || found[t].length) check(`${name} | ${t}`, exp, found[t]);
+  }
+}
+lines.push(fails ? `${fails} FAILED` : `ALL PASS (worst ${(worst * 1000).toFixed(3)} mm)`);
+document.getElementById('out').textContent = lines.join('\n');
+document.title = fails ? 'FAIL' : 'PASS';
+</script>
+</body>
+</html>

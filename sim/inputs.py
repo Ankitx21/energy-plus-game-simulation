@@ -210,7 +210,9 @@ AC_EFFICIENCY = {  # effective seasonal COP applied to the simulated cooling loa
 }
 SOLAR_PV = {
     "kwp_per_m2": 0.20,              # [LIT] ~20% efficient modules
-    "usable_roof_fraction": 0.60,    # [ASSUME] minus tank, mumty, parapet setback, access
+    "usable_roof_fraction": 0.5455,  # [ASSUME] 60 m² of panels = the 30-panel layout drawn in 3D (roof minus
+                                     # parapet setback and the mumty/tank end); 30 x 0.4 kWp = 12.0 kWp max
+    "panel_kwp": 0.4, "panel_size_m": [1.0, 2.0],  # [LIT] 400 Wp module, 1.0 x 2.0 m
     "tilt_deg": 13, "azimuth_deg": 180,  # [ASSUME] tilt ~ latitude, facing south
     "performance_ratio": 0.78,       # [LIT] inverter, wiring, soiling, heat losses
     "cost_per_kwp": 55000,           # [ESTIMATE] residential rooftop 2025-26 - VERIFY

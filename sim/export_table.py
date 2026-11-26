@@ -85,7 +85,11 @@ def facade_table() -> dict:
                 out[f"{o}|{a}|{b}"] = [{"name": f["name"], "kind": f["kind"], "compass": f["compass"],
                                         "azimuth": f["azimuth"], "length": round(f["length"], 3), "wwr": f["wwr"],
                                         "wwr_group": f["wwr_group"], "window_area": f["window_area"],
-                                        "windows_per_floor": len(f["windows"]) // I.GEOMETRY["floors"]}
+                                        "windows_per_floor": len(f["windows"]) // I.GEOMETRY["floors"],
+                                        # exact simulated geometry for the 3D scene (world x=east, y=north, z=up)
+                                        "A": f["A"], "B": f["B"], "t": [round(v, 6) for v in f["t"]],
+                                        "n": [round(v, 6) for v in f["n"]],
+                                        "windows": [[w["x0"], w["z0"], w["w"], w["h"]] for w in f["windows"]]}
                                        for f in geo["facades"]]
     return out
 
@@ -152,6 +156,11 @@ def main():
                      "floor_to_floor": g["floor_to_floor_m"], "floor_area": g["floor_area_total_m2"],
                      "roof_area": round(roof_area, 2), "window_height": g["window_height_m"],
                      "window_sill": g["window_sill_m"], "plinth": g["plinth_height_m"], "parapet": g["parapet_height_m"],
+                     "corners": {o: building_geometry({**BASE_DESIGN, "orientation": o})["corners"] for o in CHOICES["orientation"]},
+                     "bearing": I.ORIENTATION_DEG,
+                     "wall_thickness": {k: round(sum(t for _, t in v["layers"]), 3) for k, v in I.WALLS.items()},
+                     "roof_thickness": {k: round(sum(t for _, t in v["layers"]), 3) for k, v in I.ROOFS.items()},
+                     "shading": I.SHADING,
                      "facades": facade_table()},
         "economics": {"costs": I.COSTS, "ac_efficiency": {k: v for k, v in I.AC_EFFICIENCY.items() if k != "source"},
                       "solar": I.SOLAR_PV, "tariff_rs_per_kwh": I.TARIFF["flat_rs_per_kwh"],
