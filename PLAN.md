@@ -157,8 +157,8 @@ energy-simulation-game/
 | 4 | **Full batch:** all 20,736 designs | All runs finished (can resume if stopped) | **~3 h** | ⏳ running |
 | 5 | **Export:** one table < 5 MB, plus "what matters most" ranking and Pareto front | Data file ready; summary of key findings for Bengaluru | ~5 min | ☐ |
 | **B. Game** (tasks 6–9 can be done while task 4 runs) |||||
-| 6 | **Game skeleton:** split prototype into files, Bengaluru-only start screen, new option panel, load table, browser maths | Game plays with real data (still 2D) | — | ✅ awaiting your review |
-| 7 | **3D building:** geometry matching the shoebox, windows per facade, shading, materials that change with options | Building changes correctly with every option | — | ✅ awaiting your review |
+| 6 | **Game skeleton:** split prototype into files, Bengaluru-only start screen, new option panel, load table, browser maths | Game plays with real data (still 2D) | — | ✅ done |
+| 7 | **3D building:** geometry matching the shoebox, windows per facade, shading, materials that change with options | Building changes correctly with every option | — | ✅ done |
 | 8 | **Sun and shadows:** suncalc, time/month controls, play the day, sun path, compass, sky | Overhang visibly shades windows at May noon | — | ☐ |
 | 9 | **Site, details, camera, quality:** compound, trees, neighbours, tank, mumty, AC units, fans, presets, quality setting | Scene looks finished; runs smoothly | — | ☐ |
 | 10 | **Overlays:** heat-flow arrows, facade heat map, window-shadow % readout | Overlays match simulated gains | — | ☐ |
