@@ -70,18 +70,21 @@ MATERIALS = {
 WALLS = {
     "brick": {
         "label": "Brick (230 mm)",
-        "layers": [("cement_plaster", 0.015), ("burnt_brick", 0.230), ("cement_plaster", 0.012)],
+        "layers": [("burnt_brick", 0.230), ("cement_plaster", 0.012)],  # exposed brick outside, plastered inside
         "look": "exposed red brick",
+        "outer_solar_absorptance": 0.70,  # [LIT] red brick
     },
     "aac": {
         "label": "AAC block (200 mm)",
         "layers": [("cement_plaster", 0.015), ("aac_block", 0.200), ("cement_plaster", 0.012)],
         "look": "smooth plaster, painted off-white",
+        "outer_solar_absorptance": 0.45,  # [LIT] light-coloured paint (the 3D colour must match)
     },
     "rammed_earth": {
         "label": "Rammed earth (300 mm)",
         "layers": [("rammed_earth", 0.300), ("lime_plaster", 0.012)],
         "look": "exposed earth layers",
+        "outer_solar_absorptance": 0.65,  # [LIT] ochre earth
     },
 }
 
@@ -191,7 +194,7 @@ IMAC = {
     "naturally_ventilated": {"slope": 0.54, "intercept": 12.83, "band_90pct": 2.38},  # used for fans + NV
     "mixed_mode":           {"slope": 0.28, "intercept": 17.87, "band_90pct": 3.46},  # used for mixed-mode and AC
     "running_mean_days": 30,
-    "fan_upper_limit_bonus_c": 0.0,  # OPEN QUESTION 2 in PLAN.md: raise upper limit when fans run?
+    "fan_upper_limit_bonus_c": 0.0,  # DECIDED: no bonus - IMAC field data already includes fan use
     "source": "[CODE-like] IMAC-C (Manu et al. 2016, Building and Environment). "
               "IMAC-R for residences (CEPT/BEE) may suit homes better - VERIFY coefficients and which model to use",
 }
@@ -250,8 +253,13 @@ OPTIONS = [
     ("cooling", "Cooling", {k: v["label"] for k, v in COOLING.items()}),
     ("lighting", "Lighting", {k: v["label"] for k, v in LIGHTING.items()}),
 ]
-# Rotation of the long axis, degrees clockwise from north (OPEN QUESTION 1 in PLAN.md for the 45° cases)
+# Compass bearing of the building's long axis, degrees clockwise from north
 ORIENTATION_DEG = {"ns": 0, "nwse": 135, "nesw": 45, "ew": 90}
+# Which walls get the "N/S" window ratio: the walls facing closest to north/south.
+# In the 45° orientations all walls are equally close, so a tie-break is needed (DECIDED in task 2):
+#   "long"  -> the long walls get the N/S ratio (treat diagonal houses as a turned E–W house)
+#   "short" -> the short walls get the N/S ratio (treat diagonal houses as a turned N–S house)
+WWR_TIE_BREAK = "long"  # bigger windows stay on the long walls, as in typical Indian homes
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -113,7 +113,10 @@ energy-simulation-game/
 ├─ sim/                         simulation pipeline (Python)
 │  ├─ inputs.py                 options, materials, schedules, costs (one readable file)
 │  ├─ check_weather.py          prints a monthly summary of the weather file
-│  ├─ make_idf.py               writes one EnergyPlus model for one design
+│  ├─ epw.py                    weather-file helpers (temperatures, running mean)
+│  ├─ make_idf.py               geometry + one EnergyPlus model for one design
+│  ├─ simulate.py               runs one design, turns output into game numbers
+│  ├─ sample/                   sample model (base.idf) and its result
 │  ├─ run_batch.py              runs all designs in parallel, resumable, takes --city
 │  ├─ export_table.py           results → one compact table for the game
 │  ├─ weather/                  Bengaluru weather file
@@ -138,7 +141,7 @@ energy-simulation-game/
 |---|---|---|---|---|
 | **A. Simulation pipeline** |||||
 | 1 | **Setup and inputs:** folders, Bengaluru weather file, `sim/inputs.py` with Indian material values (ECBC/ENS), schedules, IMAC, tariff, CPWD costs | You can read and check every input value in one file | — | ✅ done |
-| 2 | **Shoebox model:** `make_idf.py`; build and run 1 design | 1 sample model runs; results shown in plain language | ~1 min | ☐ |
+| 2 | **Shoebox model:** `make_idf.py`; build and run 1 design | 1 sample model runs; results shown in plain language | ~1 min | ✅ done |
 | 3 | **Test batch:** ~50 designs, timing, sanity checks (shading lowers cooling, cool roof lowers roof gain, energy per m² in a realistic range) | Checks pass; estimated full-batch time known | ~5 min | ☐ |
 | 4 | **Full batch:** all 20,736 designs | All runs finished (can resume if stopped) | **~3 h** | ☐ |
 | 5 | **Export:** one table < 5 MB, plus "what matters most" ranking and Pareto front | Data file ready; summary of key findings for Bengaluru | ~5 min | ☐ |
@@ -181,11 +184,18 @@ git checkout main                 # back to the latest approved version
 - Game files run locally with one command (`python -m http.server`); no backend, no paid services
 - Free sources only: EnergyPlus 26.2 (installed), Python, pvlib, three.js, suncalc, climate.onebuilding.org, CC0 textures
 
-## 11. Open questions (to settle in task 2)
+## 11. Open questions
 
-1. **Window ratios when the building is rotated.** In the NW–SE and NE–SW orientations no wall faces exactly north or south. Proposal: "N/S windows" apply to the pair of walls facing closest to north and south, and the game shows that on the 3D building. (At exactly 45° both pairs are equally close, so the rule needs a tie-break; I'll show you options.)
-2. **Comfort with fans.** IMAC allows a higher comfortable temperature when fans move the air. Proposal: apply that higher limit in the fan and mixed-mode options.
+1. ~~Window ratios when the building is rotated.~~ **Decided (task 2):** each wall gets the ratio of the direction it faces most closely. In the 45° orientations the **long walls get the N/S ratio**, so the bigger windows stay on the long walls as in typical homes.
+2. ~~Comfort with fans.~~ **Decided (task 2):** no extra allowance; the IMAC comfort band already comes from surveys in buildings with fans.
 3. **Budget for the level.** Proposal: set it after task 5, so that net zero is possible but needs smart choices.
+
+## Task 2 findings
+
+- One EnergyPlus run takes **about 2–3 s**, so the full batch should take roughly **1.5–2 h** on 8–10 parallel workers.
+- Developer's draft: 73 kWh/m²·yr, 91% comfortable, 65% of heat gain through windows (mostly east and west glass).
+- Each change moves energy the right way: overhang −13% cooling, louvres −14%, cool roof −20%; a well-designed mixed-mode house uses 17 kWh/m²·yr at 99% comfort.
+- Peak cooling (29 kW for the draft) is inflated because the whole house is cooled at 1 pm after heating up all morning (single zone + AC schedule). Worth expert review; it only affects AC sizing cost.
 
 ## 12. Risks
 

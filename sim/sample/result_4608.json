@@ -1,0 +1,130 @@
+{
+ "row": 4608,
+ "design": {
+  "orientation": "ns",
+  "wwr_ns": "40",
+  "wwr_ew": "30",
+  "glazing": "single_clear",
+  "shading": "none",
+  "wall": "brick",
+  "roof": "bare",
+  "roof_finish": "normal",
+  "cooling": "ac24",
+  "lighting": "fluorescent"
+ },
+ "monthly_kwh": {
+  "cooling_load": [
+   2023.0,
+   3501.8,
+   5988.5,
+   6182.6,
+   5353.2,
+   3407.9,
+   2364.5,
+   2439.5,
+   2407.5,
+   2999.6,
+   2429.5,
+   1720.0
+  ],
+  "heating_load": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "lighting": [
+   179.0,
+   161.7,
+   179.0,
+   173.2,
+   179.0,
+   173.2,
+   179.0,
+   179.0,
+   173.2,
+   179.0,
+   173.2,
+   179.0
+  ],
+  "fans": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "plugs": [
+   194.4,
+   175.6,
+   194.4,
+   188.1,
+   194.4,
+   188.1,
+   194.4,
+   194.4,
+   188.1,
+   194.4,
+   188.1,
+   194.4
+  ]
+ },
+ "comfort_pct": 91.3,
+ "too_hot_pct": 8.7,
+ "too_cold_pct": 0.0,
+ "peak_cooling_kw": 29.28,
+ "heat_gains_kwh": {
+  "windows_solar": 55117.5,
+  "windows_conduction": 57.9,
+  "walls": 8743.3,
+  "roof": 12400.4,
+  "air": 987.8,
+  "people": 2569.6,
+  "lights": 2107.9,
+  "equipment": 2288.5
+ },
+ "facade_gains_kwh": {
+  "end_a": {
+   "compass": "S",
+   "wall": 1453.8,
+   "window_solar": 10986.8,
+   "window_conduction": 0.0
+  },
+  "side_a": {
+   "compass": "E",
+   "wall": 3296.0,
+   "window_solar": 19502.9,
+   "window_conduction": 57.9
+  },
+  "end_b": {
+   "compass": "N",
+   "wall": 488.7,
+   "window_solar": 6131.1,
+   "window_conduction": 0.0
+  },
+  "side_b": {
+   "compass": "W",
+   "wall": 3504.8,
+   "window_solar": 18496.7,
+   "window_conduction": 0.0
+  }
+ },
+ "max_indoor_c": 33.2,
+ "seconds": 2.21,
+ "warnings": 2
+}

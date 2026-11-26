@@ -27,3 +27,6 @@ graphify-out/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Scratch run folders from simulate.py
+sim/sample/*/
