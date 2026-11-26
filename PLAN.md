@@ -167,7 +167,7 @@ energy-simulation-game/
 | 9 | **Site, details, camera, quality:** compound, trees, neighbours, tank, mumty, AC units, fans, presets, quality setting | Scene looks finished; runs smoothly | — | ✅ done |
 | 10 | **Overlays:** heat-flow arrows, facade heat map, window-shadow % readout | Overlays match simulated gains | — | ✅ done |
 | 11 | **Features 1–3:** predict-before-simulate, window ratio per facade, heat-flow chart + advice | Working in game | — | ✅ done |
-| 12 | **Features 4–5:** design explorer (scatter + Pareto, click to load), what matters most | Working in game | — | ☐ |
+| 12 | **Features 4–5:** design explorer (scatter + Pareto, click to load), what matters most | Working in game | — | ✅ done |
 | 13 | **Feature 6:** bill, payback, 3 missions | Working in game | — | ☐ |
 | **C. Finish** |||||
 | 14 | **Polish and guides:** test laptop and phone sizes, fix issues, write `SETUP.md` and `ASSUMPTIONS.md` | Demo complete; anyone can run it from the guide | — | ☐ |
@@ -236,6 +236,13 @@ git checkout main                 # back to the latest approved version
 - `game/js/features.js`. **Predict first:** before each simulation a dialog asks whether energy use and comfort will go up, down or stay about the same (±1); the result panel then shows ✓/✗ with the real change and a running tally. Skip or "don't ask me" (remembered) are allowed.
 - **Window ratio per facade:** table under the Windows options (compass, % glass, window count, m², change since last run) and a "Window %" 3D overlay labelling each facade.
 - **Where the heat comes from:** card under the monthly chart with yearly heat gain per source (windows per facade, walls, roof, air, people, lights, appliances), sorted, with the change since the previous run; up to three plain-language tips from the biggest sources, each with "Try it" (sets the option; the player still has to simulate, so tips never reveal numbers).
+
+## Task 12 notes
+- `game/js/explorer.js`, opened with "Explore all designs" in the top bar. It unlocks for good after the first submit (or when simulations run out); before that it asks "Peek at every answer?".
+- **All designs:** canvas scatter of all 20,736 designs (cost vs energy use) with the player's AC choice; blue = comfortable ≥ target, grey = less; orange line = best-value front (cheapest for its energy use, comfortable); budget and target guides; "Your design" ring. Filters: cooling mode, solar none / sized for net zero. Hover tooltip, click to load into the design (still needs a simulation). The front is also listed as a table with Load buttons (accessible view).
+- **What matters most:** options ranked by how far average energy use moves between their best and worst choice, with each choice's average and the comfort swing.
+- Colours validated for colour-blind separation in light and dark mode.
+- Dev shortcut: `?play&xopen` or `?play&xopen=matters`.
 
 ## Task 6 notes
 

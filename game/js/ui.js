@@ -5,6 +5,7 @@ import { drawScene2D } from './scene2d.js';
 import { createScene, webglAvailable } from './scene3d.js';
 import { sunControlsHTML, attachSunControls, attachViewControls, savedQuality, attachOverlayControls, renderShadowReadout } from './sunui.js';
 import { RAMP_CSS } from './overlays3d.js';
+import { renderExplorer } from './explorer.js';
 import { predictHTML, checkPrediction, revealHTML, facadeTableHTML, heatChartHTML, advice } from './features.js';
 
 const $ = q => document.querySelector(q);
@@ -40,7 +41,9 @@ export function init(city) {
   $('#modal').onclick = e => { if (e.target.id === 'modal') closeModal(); };
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
   renderLevels();
-  if (new URLSearchParams(location.search).has('play')) startLevel();  // shortcut for testing and demos
+  const q = new URLSearchParams(location.search);
+  if (q.has('play')) startLevel();  // shortcuts for testing and demos: ?play, ?play&xopen[=matters]
+  if (q.has('play') && q.has('xopen')) { showExplorer(); if (q.get('xopen') === 'matters') document.querySelector('[data-tab="matters"]').click(); }
 }
 
 // ---------- options (simulated + browser-only) ----------
@@ -121,6 +124,7 @@ function renderGame() {
     <div><h2>${lv.title}</h2><div class="sub">${m.city.name} · ${m.city.climate_zone} · home, ${fmtN(m.geometry.floor_area)} m², ${m.geometry.floors} floors</div></div>
     <div class="meter"><div class="lab"><span>Budget used</span><b id="bud"></b></div><div class="track"><i id="budbar"></i></div></div>
     <div><div class="k" style="font-size:13px">Simulations left</div><div class="dots" id="dots"></div></div>
+    <button class="btn alt" id="explore">Explore all designs</button>
     <button class="btn" id="submit">Submit design</button>
   </div>
   <div class="grid">
@@ -157,6 +161,7 @@ function renderGame() {
   <div class="mbar" id="mbar"></div>`;
   $('#back').onclick = renderLevels;
   $('#submit').onclick = openSubmit;
+  $('#explore').onclick = openExplorer;
   $('#sim').onclick = doSim;
   document.querySelectorAll('.chip').forEach(b => b.onclick = () => { S.ch[b.dataset.o] = b.dataset.k; update(); });
   $('#pv').oninput = e => { S.ch.pv = +e.target.value; update(); };
@@ -364,4 +369,25 @@ function openSubmit() {
   $('#ml').onclick = () => { closeModal(); renderLevels(); };
   $('#mk').focus();
 }
-function closeModal() { $('#modal').classList.remove('on'); }
+function closeModal() { $('#modal').classList.remove('on'); $('#dlg').classList.remove('wide'); }
+
+// Features 4 and 5: the explorer shows every answer, so it opens freely only after a first submit
+function openExplorer() {
+  const unlocked = (S.progress.blr || {}).score || S.simsLeft <= 0 || new URLSearchParams(location.search).has('explore');
+  if (!unlocked) {
+    $('#dlg').innerHTML = `<h2 id="mt">Peek at every answer?</h2>
+      <div class="od" style="color:var(--ink)">The explorer plots all ${fmtN(S.city.meta.rows)} simulated designs and shows the best ones. It is most fun after you have tried on your own: it unlocks for good when you submit a design.</div>
+      <div class="row"><button class="btn alt" id="xno">Not yet</button><button class="btn" id="xyes">Open anyway</button></div>`;
+    $('#modal').classList.add('on');
+    $('#xno').onclick = closeModal; $('#xyes').onclick = showExplorer; $('#xno').focus();
+    return;
+  }
+  showExplorer();
+}
+function showExplorer() {
+  $('#dlg').classList.add('wide'); $('#modal').classList.add('on');
+  renderExplorer($('#dlg'), { city: S.city, settings: S.settings, level: S.level, design: S.ch, runs: S.runs,
+    onLoad: d => { S.ch = d; closeModal(); update();
+      const sc = $('#scan'); sc.textContent = 'Loaded from the explorer. Simulate to see the full results.'; sc.classList.add('on'); setTimeout(() => sc.classList.remove('on'), 1600); } });
+  $('#xclose').onclick = closeModal; $('#xclose').focus();
+}
