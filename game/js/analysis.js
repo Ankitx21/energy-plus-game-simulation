@@ -87,8 +87,10 @@ export const MISSIONS = [
     ok: (r, lv) => r.nz >= 1 - 1e-9 && r.comfort >= lv.comfort_target, better: (a, b) => a.cost < b.cost,
     metric: r => r.cost, unit: 'cost' },
   { id: 'no_ac', title: 'No-AC challenge',
-    goal: lv => `No air-conditioning at all. Stay comfortable ≥ ${lv.noac_comfort_target}% of the time and reach net zero.`,
-    ok: (r, lv) => !r.acOn && r.nz >= 1 - 1e-9 && r.comfort >= lv.noac_comfort_target, better: (a, b) => a.comfort > b.comfort || (a.comfort === b.comfort && a.cost < b.cost),
+    goal: lv => `No air-conditioning at all. Reach net zero with ≥ ${lv.noac_comfort_target}% comfort; more comfort and lower cost score higher.`,
+    ok: (r, lv) => !r.acOn && r.nz >= 1 - 1e-9 && r.comfort >= lv.noac_comfort_target,
+    // best = most comfortable; among equally comfortable designs (within 0.5 pt), the cheapest
+    better: (a, b) => a.comfort > b.comfort + 0.5 || (Math.abs(a.comfort - b.comfort) <= 0.5 && a.cost < b.cost),
     metric: r => r.comfort, unit: 'comfort' },
   { id: 'lowest_eui', title: 'Lowest energy within budget',
     goal: lv => `Use as little energy as possible with ≥ ${lv.comfort_target}% comfort, without going over budget.`,
@@ -114,4 +116,32 @@ export function missionBest(city, settings, level, mission) {
     }
   }
   return best;
+}
+
+/**
+ * Mission score out of 1000, relative to the best possible answer (best = missionBest result).
+ * Goal not met: up to 399 points for progress towards it, no stars.
+ * Goal met: 400 + 600 x (how close to the best). Stars: goal met 1, within 80 % of the best 2, within 95 % 3.
+ */
+export function missionScore(mission, level, best, r, acOn) {
+  const rr = { ...r, acOn };
+  const ok = mission.ok(rr, level);
+  const clamp = x => Math.min(1, Math.max(0, x));
+  let rel = 0;
+  if (ok && best) {
+    if (mission.unit === 'cost') rel = best.cost / Math.max(r.cost, 1);
+    else if (mission.unit === 'eui') rel = best.eui / Math.max(r.eui, 1e-6);
+    else rel = 0.7 * clamp((r.comfort - 75) / Math.max(best.comfort - 75, 1e-6)) + 0.3 * clamp(best.cost / Math.max(r.cost, 1));
+  }
+  rel = clamp(rel);
+  let score;
+  if (ok) score = 400 + 600 * rel;
+  else {
+    const target = mission.id === 'no_ac' ? level.noac_comfort_target : level.comfort_target;
+    const comfort = clamp((r.comfort - 75) / (target - 75));
+    const second = mission.id === 'lowest_eui' ? (r.cost <= level.budget_rs ? 1 : clamp(level.budget_rs / r.cost) * 0.8) : clamp(r.nz);
+    score = Math.min(399, 200 * comfort + 199 * second);
+  }
+  const stars = ok ? 1 + (rel >= 0.8) + (rel >= 0.95) : 0;
+  return { ok, rel, score: Math.round(score), stars, over: r.cost > level.budget_rs, mission: true };
 }

@@ -241,3 +241,9 @@ td button{border:1px solid var(--line);background:var(--chip);border-radius:7px;
 .mmc{grid-column:2;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;color:var(--mut)}
 .mmc .best{color:var(--ink);font-weight:600}
 @media(max-width:720px){.mmr{grid-template-columns:1fr}.mmc{grid-column:1}.dlg.wide{padding:14px}}
+/* ---- task 13: bill, payback, missions ---- */
+.pay{font-size:15px;margin-bottom:8px}
+.mwrap{padding:28px max(4vw,16px) 0}
+.mh{font-size:clamp(22px,2.6vw,28px)}
+.levels.missions{margin:0;padding:0;max-width:none}
+.levels.missions .lc{max-width:none}

@@ -1,6 +1,7 @@
 // Screens and panels. State lives in S; every change calls update().
 import { evaluate, score, bestMoves } from './engine.js';
-import { drawMonthly } from './charts.js';
+import { drawMonthly, drawBill } from './charts.js';
+import { MISSIONS, missionBest, missionScore } from './analysis.js';
 import { drawScene2D } from './scene2d.js';
 import { createScene, webglAvailable } from './scene3d.js';
 import { sunControlsHTML, attachSunControls, attachViewControls, savedQuality, attachOverlayControls, renderShadowReadout } from './sunui.js';
@@ -26,7 +27,7 @@ const GROUPS = [
 ];
 
 const S = { city: null, level: null, view: 'levels', ch: null, runs: [], cur: null, simsLeft: 0, busy: false,
-            settings: { tariff: 7, subsidy: true }, progress: {}, tally: { right: 0, total: 0 }, predictOff: false };
+            settings: { tariff: 7, subsidy: true }, progress: {}, tally: { right: 0, total: 0 }, predictOff: false, mission: null, best: null };
 try { S.predictOff = localStorage.getItem('nzb-predict-off') === '1'; } catch (e) { /* private mode */ }
 try { S.progress = JSON.parse(localStorage.getItem('nzb-progress-v2') || '{}'); } catch (e) { /* private mode */ }
 const save = () => { try { localStorage.setItem('nzb-progress-v2', JSON.stringify(S.progress)); } catch (e) { /* ignore */ } };
@@ -59,6 +60,11 @@ const detail = (opt, choice) => S.city.meta.option_details[`${opt}.${choice}`] |
 // ---------- start screen ----------
 function disposeScene() { if (S.sunui) { S.sunui.stop(); S.sunui0 = { month: S.sunui.state.month, hour: S.sunui.state.hour }; } S.sunui = null; if (S.scene3d) { S.scene3d.dispose(); S.scene3d = null; } }
 
+function renderTotal() {
+  const keys = ['blr', ...MISSIONS.map(m => m.id)];
+  $('#tot').textContent = `★ ${keys.reduce((a, k) => a + ((S.progress[k] || {}).stars || 0), 0)} / ${keys.length * 3}`;
+}
+
 function renderLevels() {
   disposeScene();
   S.view = 'levels'; document.body.classList.remove('game');
@@ -78,6 +84,10 @@ function renderLevels() {
       ${done < total ? `<div class="datainfo">Data: ${fmtN(done)} of ${fmtN(total)} designs simulated so far</div>` : ''}
     </button>
   </div>
+  <div class="wrap mwrap"><h2 class="mh">Missions</h2><p class="od" style="margin:4px 0 12px">Same house, a sharper goal. Each one is scored against the best answer hidden in the ${fmtN(total)} designs.</p>
+  <div class="levels missions">${MISSIONS.map(mi => { const pm = S.progress[mi.id] || {}; return `
+    <button class="lc" data-mission="${mi.id}"><div class="top"><h3>${mi.title}</h3><span class="stars">${starStr(pm.stars || 0)}</span></div>
+      <div class="meta">${mi.goal(lv)}</div><div class="meta">${pm.score ? 'Best ' + pm.score : 'Not played'} · ${lv.simulations} simulations</div></button>`; }).join('')}</div></div>
   <section class="band" id="how"><div class="wrap">
     <h2 style="font-size:clamp(26px,3.4vw,36px)">How a browser can "simulate" a building instantly</h2>
     <p style="max-width:68ch;margin:10px 0 0">The heavy physics runs once, offline. Every one of the ${fmtN(total)} designs you can make was simulated in advance with EnergyPlus, using Bengaluru's weather. Pressing Simulate finds your row in that table and does a little arithmetic on top.</p>
@@ -90,26 +100,41 @@ function renderLevels() {
     ].map((s, i) => `<div class="st${i === 4 ? ' you' : ''}"><b>${s[0]}</b><span>${s[1]}</span><em class="where">${s[2]}</em></div>`).join('')}</div>
     <p class="note">Results come from a simplified single-zone EnergyPlus model with typical Indian materials and a family of four. They are for comparing designs, not for predicting a real bill. Costs are estimates.</p>
   </div></section>`;
-  $('#play').onclick = startLevel;
-  $('#tot').textContent = `★ ${p.stars || 0} / 3`;
+  $('#play').onclick = () => startLevel(null);
+  document.querySelectorAll('[data-mission]').forEach(b => b.onclick = () => startLevel(b.dataset.mission));
+  renderTotal();
 }
 
 // ---------- game ----------
-function startLevel() {
+function startLevel(missionId = null) {
   const m = S.city.meta;
+  S.mission = MISSIONS.find(x => x.id === missionId) || null;
   S.ch = { ...m.base_design, ac: '3star', pv: 0 };
+  if (S.mission?.id === 'no_ac') S.ch.cooling = 'nv';
   S.runs = []; S.simsLeft = S.level.simulations; S.tally = { right: 0, total: 0 };
-  if (!commitRun("Developer's draft")) {
-    $('#app').innerHTML = `<div class="loading err">The developer's draft has not been simulated yet. Re-export the table when the batch has reached it.</div>`;
-    return;
-  }
-  renderGame();
+  const go = () => {
+    if (!commitRun("Developer's draft")) {
+      $('#app').innerHTML = `<div class="loading err">The developer's draft has not been simulated yet. Re-export the table when the batch has reached it.</div>`;
+      return;
+    }
+    renderGame();
+  };
+  if (!S.mission) { S.best = null; go(); return; }
+  // Missions are scored against the best possible answer: search every design once (about a second)
+  disposeScene(); document.body.classList.add('game');
+  $('#app').innerHTML = `<div class="loading">Preparing “${S.mission.title}”: finding the best of ${fmtN(m.rows)} designs…</div>`;
+  setTimeout(() => { S.best = missionBest(S.city, S.settings, S.level, S.mission); go(); }, 30);
 }
+
+const acOn = d => S.city.meta.cooling_modes[d.cooling].ac;
+// Level score, or mission score relative to the best possible answer
+const scoreOf = r => S.mission ? missionScore(S.mission, S.level, S.best, r, acOn(r.design)) : score(S.level, r);
+const allowedChoice = (opt, choice) => !(S.mission?.id === 'no_ac' && opt === 'cooling' && S.city.meta.cooling_modes[choice].ac);
 
 function commitRun(label) {
   const r = evaluate(S.city, S.ch, S.settings);
   if (!r) return false;
-  const run = { n: S.runs.length, label, ch: { ...S.ch }, r, e: score(S.level, r) };
+  const run = { n: S.runs.length, label, ch: { ...S.ch }, r, e: scoreOf(r) };
   S.runs.push(run); S.cur = run;
   return true;
 }
@@ -121,7 +146,7 @@ function renderGame() {
   $('#app').innerHTML = `
   <div class="gbar">
     <button class="back" id="back">← Start</button>
-    <div><h2>${lv.title}</h2><div class="sub">${m.city.name} · ${m.city.climate_zone} · home, ${fmtN(m.geometry.floor_area)} m², ${m.geometry.floors} floors</div></div>
+    <div><h2>${S.mission ? 'Mission: ' + S.mission.title : lv.title}</h2><div class="sub">${m.city.name} · ${m.city.climate_zone} · home, ${fmtN(m.geometry.floor_area)} m², ${m.geometry.floors} floors</div></div>
     <div class="meter"><div class="lab"><span>Budget used</span><b id="bud"></b></div><div class="track"><i id="budbar"></i></div></div>
     <div><div class="k" style="font-size:13px">Simulations left</div><div class="dots" id="dots"></div></div>
     <button class="btn alt" id="explore">Explore all designs</button>
@@ -142,13 +167,17 @@ function renderGame() {
     </aside>
     <section class="mid">
       <div class="scene" id="scenebox">${S.use3d ? '<div id="scene3d" role="img" aria-label="3D view of your building: drag to orbit, scroll or pinch to zoom"></div>' : '<svg id="scene" role="img" aria-label="Drawing of your building"></svg>'}
-        <div class="brief"><b>Client brief</b>${lv.brief}</div>
+        <div class="brief"><b>${S.mission ? 'Mission' : 'Client brief'}</b>${S.mission ? S.mission.goal(lv) : lv.brief}</div>
         ${S.use3d ? sunControlsHTML() + '<div class="legend3d" id="legend3d" hidden></div>' : '<div class="tag">2D view (3D needs WebGL)</div>'}
         <div class="scan" id="scan"></div></div>
       <div class="card"><h3 id="mtitle">Month by month: energy used vs solar generated</h3>
         <div class="fig"><svg id="mchart"></svg></div>
         <div class="legend"><span><i style="background:var(--sky)"></i>Cooling</span><span><i style="background:var(--lat)"></i>Heating</span><span><i style="background:#9a948c"></i>Fans, lights, plugs</span><span><i style="background:var(--sol);border-radius:50%"></i>Solar generation</span></div>
       </div>
+      <div class="card" id="billcard"><h3>Electricity bill and payback</h3>
+        <div class="pay" id="pay"></div>
+        <div class="fig" style="height:180px"><svg id="bchart" role="img" aria-label="Monthly electricity bill"></svg></div>
+        <div class="legend"><span><i style="background:var(--x-front)"></i>You pay</span><span><i style="background:var(--x-ok)"></i>Solar credit (net metering)</span></div></div>
       <div class="card" id="heatcard"><h3>Where the heat comes from</h3><div id="hf"></div>
         <div class="advice" id="advice"></div></div>
     </section>
@@ -178,12 +207,14 @@ function renderGame() {
   }
   else new ResizeObserver(() => drawScene2D($('#scene'), S.city, S.ch)).observe($('#scene'));
   new ResizeObserver(() => drawMonthly($('#mchart'), S.cur.r)).observe($('#mchart'));
+  new ResizeObserver(() => drawBill($('#bchart'), S.cur.r)).observe($('#bchart'));
   update(); window.scrollTo(0, 0);
 }
 
 // Money settings change the browser maths, so recompute stored runs
 function refreshRuns() {
-  for (const u of S.runs) { u.r = evaluate(S.city, u.ch, S.settings); u.e = score(S.level, u.r); }
+  if (S.mission) S.best = missionBest(S.city, S.settings, S.level, S.mission);
+  for (const u of S.runs) { u.r = evaluate(S.city, u.ch, S.settings); u.e = scoreOf(u.r); }
 }
 
 function changedLabels() {
@@ -239,6 +270,7 @@ function update() {
     document.querySelectorAll(`.chip[data-o="${id}"]`).forEach(b => {
       b.setAttribute('aria-pressed', b.dataset.k === ch[id]);
       if (id === 'ac') b.disabled = !acOn;
+      if (!allowedChoice(id, b.dataset.k)) { b.disabled = true; b.title = 'Not allowed in the no-AC challenge'; }
     });
     $('#o-' + id).classList.toggle('chg', ch[id] !== cur[id]);
     $('#d-' + id).textContent = id === 'ac' ? (acOn ? `COP ${S.city.meta.economics.ac_efficiency[ch.ac].cop}` : 'No AC in this cooling mode') : detail(id, ch[id]);
@@ -270,9 +302,25 @@ function update() {
   drawMonthly($('#mchart'), S.cur.r);
   const r = S.cur.r;
   $('#mtitle').textContent = r.pv >= r.use ? 'Month by month: solar covers the year' : r.pv > 0 ? 'Month by month: where solar falls short' : 'Month by month: energy used, no solar yet';
-  renderResults(); renderHist(); renderBTS(); renderMbar(); renderHeat();
+  renderResults(); renderHist(); renderBTS(); renderMbar(); renderHeat(); renderBill();
   const prevFac = S.city.facadesFor(S.cur.ch), fac = S.city.facadesFor(S.ch);
   $('#ftab').innerHTML = facadeTableHTML(fac, prevFac);
+}
+
+// Feature 6: monthly bill and payback against the developer's draft
+function renderBill() {
+  const r = S.cur.r, d = S.runs[0].r, tariff = S.settings.tariff;
+  drawBill($('#bchart'), r);
+  const extra = r.cost - d.cost, save = d.annualBill - r.annualBill;
+  let msg;
+  if (S.cur === S.runs[0]) msg = `The developer's draft pays <b>${fmtR(r.annualBill)}</b> a year (about ${fmtR(r.annualBill / 12)} a month). Improve it and the payback appears here.`;
+  else if (save <= 0) msg = `This design's bill is <b>${fmtR(r.annualBill)}</b> a year: no saving against the draft (${fmtR(d.annualBill)}).`;
+  else if (extra <= 0) msg = `Bill <b>${fmtR(r.annualBill)}</b>/yr, saving <b>${fmtR(save)}</b> a year against the draft, and it costs ${fmtL(-extra)} <b>less</b> to build: it pays back from day one.`;
+  else {
+    const years = extra / save;
+    msg = `Bill <b>${fmtR(r.annualBill)}</b>/yr. The upgrades cost <b>${fmtL(extra)}</b> more than the draft and save <b>${fmtR(save)}</b> a year, so they <b>pay back in ${years < 1 ? 'under a year' : years.toFixed(1) + ' years'}</b>${years < 25 ? `; over 25 years you keep about ${fmtL(save * 25 - extra)}` : ''}.`;
+  }
+  $('#pay').innerHTML = msg + `<div class="od">At ₹${tariff}/kWh with net metering: extra solar in sunny months offsets other months. Change the tariff under Money.</div>`;
 }
 
 // Feature 3: heat-flow breakdown of the last simulated design, compared with the run before it, plus advice
@@ -302,10 +350,12 @@ function renderLegend(live) {
 function renderResults() {
   const lv = S.level, { r, e } = S.cur;
   const ringR = 46, circ = 2 * Math.PI * ringR, f = Math.min(1, r.nz);
-  const goals = [[e.s1, `Energy use ≤ ${lv.eui_target} kWh/m²·yr`], [e.s2, `Comfortable ≥ ${lv.comfort_target}% of the time`], [e.s3, 'Net zero (solar ≥ yearly use), within budget']];
+  const goals = S.mission
+    ? [[e.ok, S.mission.goal(lv)], [e.stars >= 2, 'Within 80% of the best possible answer'], [e.stars >= 3, 'Within 95% of the best possible answer']]
+    : [[e.s1, `Energy use ≤ ${lv.eui_target} kWh/m²·yr`], [e.s2, `Comfortable ≥ ${lv.comfort_target}% of the time`], [e.s3, 'Net zero (solar ≥ yearly use), within budget']];
   const rows = [['Cooling', r.coolingE, 'var(--sky)'], ['Heating', r.heatingE, 'var(--lat)'], ['Fans', r.fansE, '#9a948c'], ['Lighting', r.lightingE, '#9a948c'], ['Appliances', r.plugsE, '#9a948c'], ['Solar', r.pv, 'var(--sol)']];
   const mx = Math.max(...rows.map(x => x[1]), 1);
-  const mv = bestMoves(S.city, lv, S.cur.ch, S.settings).filter(x => x.gain > 0 && !(x.e.over && !e.over)).slice(0, 3);
+  const mv = bestMoves(S.city, lv, S.cur.ch, S.settings, scoreOf, allowedChoice).filter(x => x.gain > 0 && (S.mission || !(x.e.over && !e.over))).slice(0, 3);
   S._moves = mv;
   $('#res').innerHTML = `
     ${S.cur.reveal ? revealHTML(S.cur.reveal.rows, S.cur.reveal.tally) : ''}
@@ -357,23 +407,30 @@ function renderMbar() {
 }
 
 function openSubmit() {
-  const run = S.cur, e = run.e, p = S.progress.blr || {};
+  const run = S.cur, e = run.e, key = S.mission ? S.mission.id : 'blr', p = S.progress[key] || {};
   const better = !p.score || e.score > p.score;
-  if (better) { S.progress.blr = { stars: Math.max(e.stars, p.stars || 0), score: e.score }; save(); }
-  $('#dlg').innerHTML = `<h2 id="mt">${e.stars === 3 ? 'Net zero achieved' : e.stars ? 'Design submitted' : 'Not there yet'}</h2>
+  if (better || e.stars > (p.stars || 0)) { S.progress[key] = { stars: Math.max(e.stars, p.stars || 0), score: Math.max(e.score, p.score || 0) }; save(); }
+  if (!S.progress.blr) { S.progress.blr = { stars: 0, score: 0 }; save(); }  // any submit unlocks the explorer
+  const b = S.best, m = S.mission;
+  const val = r => m.unit === 'cost' ? fmtL(r.cost) : m.unit === 'eui' ? r.eui.toFixed(1) + ' kWh/m²·yr' : r.comfort.toFixed(0) + '% comfortable';
+  const bestLine = m && b ? `<div class="od">Best possible: ${val(b)} · yours: ${val(run.r)}. Open the explorer to find it.</div>` : '';
+  const title = m ? (e.ok ? (e.stars === 3 ? 'Spot on' : 'Mission complete') : 'Goal not met yet') : (e.stars === 3 ? 'Net zero achieved' : e.stars ? 'Design submitted' : 'Not there yet');
+  $('#dlg').innerHTML = `<h2 id="mt">${title}</h2>
    <div class="big">${starStr(e.stars)}</div><div class="score">${e.score} pts</div>
-   <div class="od" style="color:var(--ink)">${run.label}: ${pct(run.r.nz)} net zero · ${run.r.comfort.toFixed(0)}% comfortable · ${fmtL(run.r.cost)}${better && p.score ? ' · new best!' : ''}</div>
-   <div class="row"><button class="btn alt" id="mk">Keep designing</button><button class="btn" id="ml">Back to start</button></div>`;
+   <div class="od" style="color:var(--ink)">${run.label}: ${pct(run.r.nz)} net zero · ${run.r.comfort.toFixed(0)}% comfortable · ${fmtL(run.r.cost)}${better && p.score ? ' · new best!' : ''}</div>${bestLine}
+   <div class="row"><button class="btn alt" id="mk">Keep designing</button><button class="btn alt" id="mx">Explore all designs</button><button class="btn" id="ml">Back to start</button></div>`;
   $('#modal').classList.add('on');
   $('#mk').onclick = closeModal;
+  $('#mx').onclick = showExplorer;
   $('#ml').onclick = () => { closeModal(); renderLevels(); };
   $('#mk').focus();
+  renderTotal();
 }
 function closeModal() { $('#modal').classList.remove('on'); $('#dlg').classList.remove('wide'); }
 
 // Features 4 and 5: the explorer shows every answer, so it opens freely only after a first submit
 function openExplorer() {
-  const unlocked = (S.progress.blr || {}).score || S.simsLeft <= 0 || new URLSearchParams(location.search).has('explore');
+  const unlocked = S.progress.blr || S.simsLeft <= 0 || new URLSearchParams(location.search).has('explore');
   if (!unlocked) {
     $('#dlg').innerHTML = `<h2 id="mt">Peek at every answer?</h2>
       <div class="od" style="color:var(--ink)">The explorer plots all ${fmtN(S.city.meta.rows)} simulated designs and shows the best ones. It is most fun after you have tried on your own: it unlocks for good when you submit a design.</div>

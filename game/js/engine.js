@@ -88,22 +88,22 @@ export function score(level, r) {
 }
 
 // Every single change from the current design, ranked by score gain.
-export function bestMoves(city, level, design, settings) {
+export function bestMoves(city, level, design, settings, scorer = r => score(level, r), allowed = () => true) {
   const base = evaluate(city, design, settings);
   if (!base) return [];
-  const be = score(level, base), out = [];
+  const be = scorer(base), out = [];
   for (const o of city.options) {
     for (const ch of o.choices) {
-      if (ch.id === design[o.id]) continue;
+      if (ch.id === design[o.id] || !allowed(o.id, ch.id)) continue;
       const d = { ...design, [o.id]: ch.id }, r = evaluate(city, d, settings);
       if (!r) continue;
-      const e = score(level, r);
+      const e = scorer(r);
       out.push({ label: `${o.label}: ${ch.label}`, design: d, r, e, gain: e.score - be.score });
     }
   }
   for (const pv of [design.pv + 20, design.pv + 40]) {
     if (pv > 100) continue;
-    const d = { ...design, pv }, r = evaluate(city, d, settings), e = score(level, r);
+    const d = { ...design, pv }, r = evaluate(city, d, settings), e = scorer(r);
     out.push({ label: `Solar PV to ${pv}% of roof`, design: d, r, e, gain: e.score - be.score });
   }
   return out.sort((a, b) => b.gain - a.gain);
