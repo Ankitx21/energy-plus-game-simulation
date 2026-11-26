@@ -166,7 +166,7 @@ energy-simulation-game/
 | 8 | **Sun and shadows:** suncalc, time/month controls, play the day, sun path, compass, sky | Real sun position; shadows move with time and month | — | ✅ done |
 | 9 | **Site, details, camera, quality:** compound, trees, neighbours, tank, mumty, AC units, fans, presets, quality setting | Scene looks finished; runs smoothly | — | ✅ done |
 | 10 | **Overlays:** heat-flow arrows, facade heat map, window-shadow % readout | Overlays match simulated gains | — | ✅ done |
-| 11 | **Features 1–3:** predict-before-simulate, window ratio per facade, heat-flow chart + advice | Working in game | — | ☐ |
+| 11 | **Features 1–3:** predict-before-simulate, window ratio per facade, heat-flow chart + advice | Working in game | — | ✅ done |
 | 12 | **Features 4–5:** design explorer (scatter + Pareto, click to load), what matters most | Working in game | — | ☐ |
 | 13 | **Feature 6:** bill, payback, 3 missions | Working in game | — | ☐ |
 | **C. Finish** |||||
@@ -231,6 +231,11 @@ git checkout main                 # back to the latest approved version
 - `docs/FINDINGS.md`: key findings in plain words, ranges, ranking, Pareto front, mission answers. Regenerate with `node sim/findings.mjs --md docs/FINDINGS.md`.
 - Level tuned: budget ₹7 L (bolting solar on the draft costs ₹8.2 L), energy target 30 kWh/m²·yr, comfort 90 %, no-AC challenge 92 %.
 - Score rebalanced (out of 1000): net zero 350, comfort 250 (relative to target), energy 200 (linear from 80 to target), budget 200. Every sensible single move now raises the score.
+
+## Task 11 notes
+- `game/js/features.js`. **Predict first:** before each simulation a dialog asks whether energy use and comfort will go up, down or stay about the same (±1); the result panel then shows ✓/✗ with the real change and a running tally. Skip or "don't ask me" (remembered) are allowed.
+- **Window ratio per facade:** table under the Windows options (compass, % glass, window count, m², change since last run) and a "Window %" 3D overlay labelling each facade.
+- **Where the heat comes from:** card under the monthly chart with yearly heat gain per source (windows per facade, walls, roof, air, people, lights, appliances), sorted, with the change since the previous run; up to three plain-language tips from the biggest sources, each with "Try it" (sets the option; the player still has to simulate, so tips never reveal numbers).
 
 ## Task 6 notes
 
