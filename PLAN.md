@@ -161,7 +161,7 @@ energy-simulation-game/
 | **B. Game** (tasks 6–9 can be done while task 4 runs) |||||
 | 6 | **Game skeleton:** split prototype into files, Bengaluru-only start screen, new option panel, load table, browser maths | Game plays with real data (still 2D) | — | ✅ done |
 | 7 | **3D building:** geometry matching the shoebox, windows per facade, shading, materials that change with options | Building changes correctly with every option | — | ✅ done |
-| 8 | **Sun and shadows:** suncalc, time/month controls, play the day, sun path, compass, sky | Real sun position; shadows move with time and month | — | ✅ awaiting your review |
+| 8 | **Sun and shadows:** suncalc, time/month controls, play the day, sun path, compass, sky | Real sun position; shadows move with time and month | — | ✅ done |
 | 9 | **Site, details, camera, quality:** compound, trees, neighbours, tank, mumty, AC units, fans, presets, quality setting | Scene looks finished; runs smoothly | — | ☐ |
 | 10 | **Overlays:** heat-flow arrows, facade heat map, window-shadow % readout | Overlays match simulated gains | — | ☐ |
 | 11 | **Features 1–3:** predict-before-simulate, window ratio per facade, heat-flow chart + advice | Working in game | — | ☐ |
