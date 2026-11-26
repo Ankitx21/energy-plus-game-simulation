@@ -170,7 +170,7 @@ energy-simulation-game/
 | 12 | **Features 4–5:** design explorer (scatter + Pareto, click to load), what matters most | Working in game | — | ✅ done |
 | 13 | **Feature 6:** bill, payback, 3 missions | Working in game | — | ✅ done |
 | **C. Finish** |||||
-| 14 | **Polish and guides:** test laptop and phone sizes, fix issues, write `SETUP.md` and `ASSUMPTIONS.md` | Demo complete; anyone can run it from the guide | — | ☐ |
+| 14 | **Polish and guides:** test laptop and phone sizes, fix issues, write `SETUP.md` and `ASSUMPTIONS.md` | Demo complete; anyone can run it from the guide | — | ✅ done |
 
 ---
 
@@ -249,6 +249,12 @@ git checkout main                 # back to the latest approved version
 - **Missions** (start screen; `game/js/analysis.js` `MISSIONS`): Cheapest net zero (≥ 90 % comfort), No-AC challenge (fans only, net zero, ≥ 92 % comfort; 70 % comfort + 30 % cost), Lowest energy within budget (≥ 90 % comfort). On start the game searches every design × AC efficiency × solar size for the best possible answer (about a second).
 - Mission score: below the goal up to 399 for progress (so hints still work); goal met 400 + 600 × closeness to the best. Stars: goal met, within 80 %, within 95 %. Submitting shows the best possible value. AC modes are locked in the no-AC challenge.
 - Header shows total stars across the main level and the three missions (12). Any submit unlocks the explorer.
+
+## Task 14 notes
+- Guides: `docs/SETUP.md` (play, host, re-create the data, troubleshooting) and `docs/ASSUMPTIONS.md` (every simplification, value and limit); README rewritten.
+- Polish: no repeated group headings in the option panel; clearer weather label; larger Window % labels; `dev/scene.html?wwr`.
+- Tests: golden rule ALL PASS (worst 0.05 mm) after fixing the test to ignore part tags it does not check; jsdom runs through the main level, predictions, explorer unlock, bill and all three missions with no errors; laptop (1400 px) and phone (375 px) layouts checked, with no sideways overflow on the phone.
+- **Stage 1 (the Bengaluru game) is complete.** Stage 2 (more cities, ENS check, bring-your-own-building tool) is next when you want it.
 
 ## Task 6 notes
 

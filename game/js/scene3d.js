@@ -457,7 +457,7 @@ export function createScene(container, meta, opts = {}) {
     if (overlay.wwr) {  // window-to-wall ratio and glass area on each facade (feature 2)
       wwrLabels = new THREE.Group();
       for (const f of currentFacades) {
-        const lab = textSprite(`${f.compass} wall: ${Math.round(f.wwr * 100)}% glass · ${f.windows.length} windows · ${f.window_area.toFixed(1)} m²`, { size: 0.55, depthTest: false, bg: 'rgba(225,240,255,0.92)' });
+        const lab = textSprite(`${f.compass} wall: ${Math.round(f.wwr * 100)}% glass · ${f.windows.length} windows · ${f.window_area.toFixed(1)} m²`, { size: 0.75, depthTest: false, bg: 'rgba(225,240,255,0.92)' });
         lab.position.copy(V(f.A[0] + f.t[0] * f.length / 2 + f.n[0] * 0.9, f.A[1] + f.t[1] * f.length / 2 + f.n[1] * 0.9, 4.6));
         lab.renderOrder = 11; wwrLabels.add(lab);
       }

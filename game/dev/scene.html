@@ -37,6 +37,7 @@ if (q.get('heat')) {  // ?heat=arrows or heatmap or both: needs the table to loo
   s.setHeat(city.lookup(design));
   s.setOverlays({ arrows: q.get('heat').includes('arrows'), heatmap: q.get('heat').includes('heatmap') });
 }
+if (q.has('wwr')) s.setOverlays({ wwr: true });  // ?wwr: window-ratio labels on each facade
 s.renderNow();
 document.getElementById('info').textContent = Object.entries(design).map(([k, v]) => `${k}=${v}`).join(' ') + ` | sun az ${s.sunState.azimuth.toFixed(1)} el ${s.sunState.elevation.toFixed(1)} | ${shadowText}`;
 document.title = 'ready';
