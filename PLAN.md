@@ -131,7 +131,11 @@ energy-simulation-game/
 │  ├─ js/engine.js              browser maths: AC efficiency, solar, cost, bill, score, best moves
 │  ├─ js/ui.js                  screens and panels
 │  ├─ js/charts.js              SVG charts
-│  ├─ js/scene2d.js             temporary 2D drawing (replaced by 3D in task 7)
+│  ├─ js/scene3d.js             three.js house built from the exact simulated geometry
+│  ├─ js/textures.js            procedural materials (brick, AAC plaster, rammed earth, roofs, grass)
+│  ├─ js/scene2d.js             2D fallback for devices without WebGL
+│  ├─ dev/                      developer pages: scene.html (render any design), golden.html (golden-rule test)
+│  ├─ vendor/                   three.js 0.170 (MIT), OrbitControls, RoomEnvironment
 │  ├─ data/                     blr.bin table (2.4 MB) + blr.json metadata, from sim/export_table.py
 │  └─ vendor/                   three.js, suncalc (local copies, works offline)
 └─ docs/
@@ -153,8 +157,8 @@ energy-simulation-game/
 | 4 | **Full batch:** all 20,736 designs | All runs finished (can resume if stopped) | **~3 h** | ⏳ running |
 | 5 | **Export:** one table < 5 MB, plus "what matters most" ranking and Pareto front | Data file ready; summary of key findings for Bengaluru | ~5 min | ☐ |
 | **B. Game** (tasks 6–9 can be done while task 4 runs) |||||
-| 6 | **Game skeleton:** split prototype into files, Bengaluru-only start screen, new option panel, load table, browser maths | Game plays with real data (still 2D) | — | ✅ awaiting your review |
-| 7 | **3D building:** geometry matching the shoebox, windows per facade, shading, materials that change with options | Building changes correctly with every option | — | ☐ |
+| 6 | **Game skeleton:** split prototype into files, Bengaluru-only start screen, new option panel, load table, browser maths | Game plays with real data (still 2D) | — | ✅ done |
+| 7 | **3D building:** geometry matching the shoebox, windows per facade, shading, materials that change with options | Building changes correctly with every option | — | ✅ done |
 | 8 | **Sun and shadows:** suncalc, time/month controls, play the day, sun path, compass, sky | Overhang visibly shades windows at May noon | — | ☐ |
 | 9 | **Site, details, camera, quality:** compound, trees, neighbours, tank, mumty, AC units, fans, presets, quality setting | Scene looks finished; runs smoothly | — | ☐ |
 | 10 | **Overlays:** heat-flow arrows, facade heat map, window-shadow % readout | Overlays match simulated gains | — | ☐ |
@@ -219,6 +223,15 @@ git checkout main                 # back to the latest approved version
 - Draft economics: AC ₹3.0 L; full-roof solar (13.2 kWp) makes it net zero but costs ₹9.5 L, over the placeholder ₹8 L budget.
 - To tune in task 5: score weights (an overhang currently lowers the score because its cost outweighs its energy saving at the placeholder targets), budget, energy target.
 - Removed from the prototype: other cities, 2050 climate toggle, daylight score (no daylight data in the table).
+
+## Task 7 notes
+
+- **Golden rule verified automatically:** `python sim/make_golden_ref.py`, then open `dev/golden.html`. In 6 designs (incl. both 45° orientations) all 120 windows and 360 shading devices sit within 0.05 mm of the simulated geometry.
+- Walls are extruded from the simulated outer faces with real thicknesses (brick 242 mm, AAC 227 mm, rammed earth 312 mm); glass sits 70 mm inside the outer face.
+- Decorative parts that cannot shade the windows: plinth band, flush floor band, stone sills, frames, parapet coping, panel mounts.
+- **Solar maximum changed from 13.2 to 12.0 kWp** so the maths equals the 30-panel layout drawn on the roof (one end kept free for the mumty and tank in task 9). Panels tilt 13° towards the side facing closest to south; in the 45° orientations that side faces SE or SW, a small yield difference not modelled.
+- Materials are procedural (drawn in code), so no texture downloads; the game stays light and works offline.
+- Add `?play` to the game URL to jump straight into the level; `?2d` forces the 2D fallback.
 
 ## 12. Risks
 

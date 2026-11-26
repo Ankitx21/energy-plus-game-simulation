@@ -2,6 +2,7 @@
 import { evaluate, score, bestMoves } from './engine.js';
 import { drawMonthly } from './charts.js';
 import { drawScene2D } from './scene2d.js';
+import { createScene, webglAvailable } from './scene3d.js';
 
 const $ = q => document.querySelector(q);
 const fmtL = x => '₹' + (x / 1e5).toFixed(1) + ' L';
@@ -28,12 +29,14 @@ const save = () => { try { localStorage.setItem('nzb-progress-v2', JSON.stringif
 export function init(city) {
   S.city = city;
   S.level = city.meta.level;
+  S.use3d = webglAvailable() && !new URLSearchParams(location.search).has('2d');
   S.settings.tariff = city.meta.economics.tariff_rs_per_kwh;
   $('#home').onclick = renderLevels;
   $('#howlink').onclick = e => { if (S.view !== 'levels') { e.preventDefault(); renderLevels(); setTimeout(() => $('#how').scrollIntoView(), 0); } };
   $('#modal').onclick = e => { if (e.target.id === 'modal') closeModal(); };
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
   renderLevels();
+  if (new URLSearchParams(location.search).has('play')) startLevel();  // shortcut for testing and demos
 }
 
 // ---------- options (simulated + browser-only) ----------
@@ -47,7 +50,10 @@ function optionDefs() {
 const detail = (opt, choice) => S.city.meta.option_details[`${opt}.${choice}`] || '';
 
 // ---------- start screen ----------
+function disposeScene() { if (S.scene3d) { S.scene3d.dispose(); S.scene3d = null; } }
+
 function renderLevels() {
+  disposeScene();
   S.view = 'levels'; document.body.classList.remove('game');
   const m = S.city.meta, lv = S.level, p = S.progress.blr || {};
   const done = m.rows_done, total = m.rows;
@@ -127,9 +133,9 @@ function renderGame() {
       <div class="simbox"><button class="btn sim" id="sim">Simulate</button><div class="od" id="simnote"></div></div>
     </aside>
     <section class="mid">
-      <div class="scene" id="scenebox"><svg id="scene" role="img" aria-label="Drawing of your building"></svg>
+      <div class="scene" id="scenebox">${S.use3d ? '<div id="scene3d" role="img" aria-label="3D view of your building: drag to orbit, scroll or pinch to zoom"></div>' : '<svg id="scene" role="img" aria-label="Drawing of your building"></svg>'}
         <div class="brief"><b>Client brief</b>${lv.brief}</div>
-        <div class="tag">2D preview · 3D scene comes in task 7</div>
+        <div class="tag">${S.use3d ? 'Drag to orbit · scroll to zoom' : '2D view (3D needs WebGL)'}</div>
         <div class="scan" id="scan"></div></div>
       <div class="card"><h3 id="mtitle">Month by month: energy used vs solar generated</h3>
         <div class="fig"><svg id="mchart"></svg></div>
@@ -152,7 +158,9 @@ function renderGame() {
   $('#tariff').onchange = e => { S.settings.tariff = Math.max(1, +e.target.value || 7); refreshRuns(); update(); };
   $('#subsidy').checked = S.settings.subsidy;
   $('#subsidy').onchange = e => { S.settings.subsidy = e.target.checked; refreshRuns(); update(); };
-  new ResizeObserver(() => drawScene2D($('#scene'), S.city, S.ch)).observe($('#scene'));
+  disposeScene();
+  if (S.use3d) S.scene3d = createScene($('#scene3d'), S.city.meta);
+  else new ResizeObserver(() => drawScene2D($('#scene'), S.city, S.ch)).observe($('#scene'));
   new ResizeObserver(() => drawMonthly($('#mchart'), S.cur.r)).observe($('#mchart'));
   update(); window.scrollTo(0, 0);
 }
@@ -203,7 +211,7 @@ function update() {
   document.querySelectorAll('.sim').forEach(b => { b.disabled = !ok; b.textContent = S.simsLeft > 0 ? `Simulate (${S.simsLeft} left)` : 'No simulations left'; });
   $('#simnote').textContent = !live ? 'This exact design is not in the table yet (batch still running)'
     : changed() ? 'Design changed since last run' : 'Change something to run a new simulation';
-  drawScene2D($('#scene'), S.city, S.ch);
+  if (S.scene3d) S.scene3d.update(S.ch); else drawScene2D($('#scene'), S.city, S.ch);
   drawMonthly($('#mchart'), S.cur.r);
   const r = S.cur.r;
   $('#mtitle').textContent = r.pv >= r.use ? 'Month by month: solar covers the year' : r.pv > 0 ? 'Month by month: where solar falls short' : 'Month by month: energy used, no solar yet';
