@@ -134,6 +134,7 @@ energy-simulation-game/
 │  ├─ js/scene3d.js             three.js house built from the exact simulated geometry
 │  ├─ js/sun.js                 sun position (NOAA equations), sunrise/sunset, daily sun path
 │  ├─ js/sunui.js               month selector, time slider, "play the day", readout
+│  ├─ js/overlays3d.js          heat-flow arrows, facade heat map, window-shadow % (from simulated data)
 │  ├─ js/site3d.js              plot, compound wall + gate, paving, road, trees, neighbouring blocks
 │  ├─ js/textures.js            procedural materials (brick, AAC plaster, rammed earth, roofs, grass)
 │  ├─ js/scene2d.js             2D fallback for devices without WebGL
@@ -164,7 +165,7 @@ energy-simulation-game/
 | 7 | **3D building:** geometry matching the shoebox, windows per facade, shading, materials that change with options | Building changes correctly with every option | — | ✅ done |
 | 8 | **Sun and shadows:** suncalc, time/month controls, play the day, sun path, compass, sky | Real sun position; shadows move with time and month | — | ✅ done |
 | 9 | **Site, details, camera, quality:** compound, trees, neighbours, tank, mumty, AC units, fans, presets, quality setting | Scene looks finished; runs smoothly | — | ✅ done |
-| 10 | **Overlays:** heat-flow arrows, facade heat map, window-shadow % readout | Overlays match simulated gains | — | ☐ |
+| 10 | **Overlays:** heat-flow arrows, facade heat map, window-shadow % readout | Overlays match simulated gains | — | ✅ awaiting your review |
 | 11 | **Features 1–3:** predict-before-simulate, window ratio per facade, heat-flow chart + advice | Working in game | — | ☐ |
 | 12 | **Features 4–5:** design explorer (scatter + Pareto, click to load), what matters most | Working in game | — | ☐ |
 | 13 | **Feature 6:** bill, payback, 3 missions | Working in game | — | ☐ |
@@ -255,6 +256,14 @@ git checkout main                 # back to the latest approved version
 - **Fans** hang with blades at 2.2 m (just below the window head) so they can be seen through the glass from street level; from raised camera angles the line of sight points down into the rooms, so fans are hidden, as in real life.
 - **Testing note:** headless Chrome screenshots stall on animated pages while the batch loads the CPU; `dev/scene.html` therefore renders in a still mode. Idle check: the game draws 37 frames while loading and then stops (no continuous rendering).
 - **Performance:** window frames, sills, louvre rods, walls, pillars and neighbour windows are merged into a few meshes; the scene only re-renders when something changes (camera, sun, design, spinning fans).
+
+## Task 10 notes
+
+- **Heat arrows** (toggle): one arrow into each facade's windows and walls, plus roof and air leakage, sized and coloured by that source's yearly simulated heat gain; a panel shows heat from people, lights and appliances. Draft: east windows 19,600 kWh and west 18,488 kWh are the biggest arrows, then the roof 12,285.
+- **Heat map** (toggle): each wall and the roof coloured by heat gain per m² (draft: S 283, E 254, W 244, N 150, roof 112 kWh/m²), with labels and a legend.
+- **Windows in shadow %** (on by default): live at the current sun position, per facade. Treated like the simulation: flush windows, only the chajjas/louvres shade (tested against invisible zero-thickness planes at the simulated positions), glass facing away from the sun counts as shaded.
+- **Checked against EnergyPlus's own sunlit fraction** at 6 moments (2 designs × Dec/May/Mar): totals within 4 points; chajja facades within 1–4 points; worst single facade 9 points (louvres, sun grazing the facade).
+- Overlays need this exact design in the table; until the batch reaches it, the legend says so.
 
 ## 12. Risks
 
