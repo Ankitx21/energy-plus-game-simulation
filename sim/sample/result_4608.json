@@ -14,18 +14,18 @@
  },
  "monthly_kwh": {
   "cooling_load": [
-   2023.0,
-   3501.8,
-   5988.5,
-   6182.6,
-   5353.2,
-   3407.9,
-   2364.5,
-   2439.5,
-   2407.5,
-   2999.6,
-   2429.5,
-   1720.0
+   2028.8,
+   3498.5,
+   5977.0,
+   6099.2,
+   5357.2,
+   3415.4,
+   2339.9,
+   2417.2,
+   2379.6,
+   3023.0,
+   2420.8,
+   1696.1
   ],
   "heating_load": [
    0.0,
@@ -84,16 +84,16 @@
    194.4
   ]
  },
- "comfort_pct": 91.3,
- "too_hot_pct": 8.7,
+ "comfort_pct": 91.6,
+ "too_hot_pct": 8.4,
  "too_cold_pct": 0.0,
- "peak_cooling_kw": 29.28,
+ "peak_cooling_kw": 28.07,
  "heat_gains_kwh": {
-  "windows_solar": 55117.5,
-  "windows_conduction": 57.9,
-  "walls": 8743.3,
-  "roof": 12400.4,
-  "air": 987.8,
+  "windows_solar": 55119.6,
+  "windows_conduction": 91.8,
+  "walls": 8587.2,
+  "roof": 12285.5,
+  "air": 988.1,
   "people": 2569.6,
   "lights": 2107.9,
   "equipment": 2288.5
@@ -101,30 +101,30 @@
  "facade_gains_kwh": {
   "end_a": {
    "compass": "S",
-   "wall": 1453.8,
-   "window_solar": 10986.8,
+   "wall": 1437.1,
+   "window_solar": 10992.5,
    "window_conduction": 0.0
   },
   "side_a": {
    "compass": "E",
-   "wall": 3296.0,
-   "window_solar": 19502.9,
-   "window_conduction": 57.9
+   "wall": 3244.8,
+   "window_solar": 19508.7,
+   "window_conduction": 91.8
   },
   "end_b": {
    "compass": "N",
-   "wall": 488.7,
-   "window_solar": 6131.1,
+   "wall": 468.8,
+   "window_solar": 6130.1,
    "window_conduction": 0.0
   },
   "side_b": {
    "compass": "W",
-   "wall": 3504.8,
-   "window_solar": 18496.7,
+   "wall": 3436.5,
+   "window_solar": 18488.3,
    "window_conduction": 0.0
   }
  },
- "max_indoor_c": 33.2,
- "seconds": 2.21,
- "warnings": 2
+ "max_indoor_c": 32.9,
+ "seconds": 1.42,
+ "warnings": 3
 }

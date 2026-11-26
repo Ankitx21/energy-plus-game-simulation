@@ -23,7 +23,7 @@ ShadowCalculation,
   20,
   15000;
 Timestep,
-  4;
+  2;
 GlobalGeometryRules,
   UpperLeftCorner,
   Counterclockwise,
@@ -921,7 +921,7 @@ Output:Variable,
   Hourly;
 Output:Variable,
   *,
-  Surface Inside Face Conduction Heat Gain Energy,
+  Surface Inside Face Conduction Heat Gain Rate,
   RunPeriod;
 Output:Variable,
   *,

@@ -175,19 +175,30 @@ def vertices(pts):
 
 
 # ─────────────────────────────── the model ───────────────────────────────
-def make_idf(design: dict, detailed_outputs: bool = False) -> str:
+SETTINGS = {
+    # "fast": 2 timesteps/hour, sunlight tracked to exterior surfaces only, shadows updated every 20 days.
+    # Task 3 test on 8 designs: annual cooling within ±0.8% and comfort within ±0.5 points of "accurate",
+    # peak cooling up to 10% lower; about 2.5x faster than "accurate".
+    "fast":     {"timestep": 2, "solar": "FullExterior", "shadow_days": 20},
+    # "accurate": 6 timesteps/hour, sunlight followed onto interior surfaces, shadows updated weekly
+    "accurate": {"timestep": 6, "solar": "FullInteriorAndExterior", "shadow_days": 7},
+}
+
+
+def make_idf(design: dict, detailed_outputs: bool = False, settings: str = "fast") -> str:
     geo = building_geometry(design)
     cool = I.COOLING[design["cooling"]]
     H, ftf = geo["height"], I.GEOMETRY["floor_to_floor_m"]
+    st = SETTINGS[settings]
     parts = []
     add = parts.append
 
-    # --- simulation settings (the "faster settings": 4 timesteps/hour, exterior-only solar, no sizing) ---
+    # --- simulation settings (no sizing runs; ideal loads need none) ---
     add(obj("Version", "26.2"))
     add(obj("SimulationControl", "No", "No", "No", "No", "Yes", "No", 1))
-    add(obj("Building", "NetZeroHome", 0, "Suburbs", 0.04, 0.4, "FullExterior", 25, 6))
-    add(obj("ShadowCalculation", "PolygonClipping", "Periodic", 20, 15000))
-    add(obj("Timestep", 4))
+    add(obj("Building", "NetZeroHome", 0, "Suburbs", 0.04, 0.4, st["solar"], 25, 6))
+    add(obj("ShadowCalculation", "PolygonClipping", "Periodic", st["shadow_days"], 15000))
+    add(obj("Timestep", st["timestep"]))
     add(obj("GlobalGeometryRules", "UpperLeftCorner", "Counterclockwise", "Relative"))
     add(obj("Site:Location", I.CITY["name"], I.CITY["lat"], I.CITY["lon"], I.CITY["timezone"], I.CITY["elevation_m"]))
     # Ground under the slab: monthly mean outdoor air temperature (reasonable for a tropical slab-on-grade)
