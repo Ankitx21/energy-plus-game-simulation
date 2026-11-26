@@ -118,6 +118,7 @@ energy-simulation-game/
 │  ├─ simulate.py               runs one design, turns output into game numbers
 │  ├─ sample/                   sample model (base.idf) and its result
 │  ├─ run_batch.py              runs all designs in parallel, resumable, takes --city
+│  ├─ check_results.py          automatic physics sanity checks on results
 │  ├─ export_table.py           results → one compact table for the game
 │  ├─ weather/                  Bengaluru weather file
 │  └─ runs/                     raw EnergyPlus outputs (large, not shipped)
@@ -142,7 +143,7 @@ energy-simulation-game/
 | **A. Simulation pipeline** |||||
 | 1 | **Setup and inputs:** folders, Bengaluru weather file, `sim/inputs.py` with Indian material values (ECBC/ENS), schedules, IMAC, tariff, CPWD costs | You can read and check every input value in one file | — | ✅ done |
 | 2 | **Shoebox model:** `make_idf.py`; build and run 1 design | 1 sample model runs; results shown in plain language | ~1 min | ✅ done |
-| 3 | **Test batch:** ~50 designs, timing, sanity checks (shading lowers cooling, cool roof lowers roof gain, energy per m² in a realistic range) | Checks pass; estimated full-batch time known | ~5 min | ☐ |
+| 3 | **Test batch:** ~50 designs, timing, sanity checks (shading lowers cooling, cool roof lowers roof gain, energy per m² in a realistic range) | Checks pass; estimated full-batch time known | ~5 min | ✅ done |
 | 4 | **Full batch:** all 20,736 designs | All runs finished (can resume if stopped) | **~3 h** | ☐ |
 | 5 | **Export:** one table < 5 MB, plus "what matters most" ranking and Pareto front | Data file ready; summary of key findings for Bengaluru | ~5 min | ☐ |
 | **B. Game** (tasks 6–9 can be done while task 4 runs) |||||
@@ -196,6 +197,13 @@ git checkout main                 # back to the latest approved version
 - Developer's draft: 73 kWh/m²·yr, 91% comfortable, 65% of heat gain through windows (mostly east and west glass).
 - Each change moves energy the right way: overhang −13% cooling, louvres −14%, cool roof −20%; a well-designed mixed-mode house uses 17 kWh/m²·yr at 99% comfort.
 - Peak cooling (29 kW for the draft) is inflated because the whole house is cooled at 1 pm after heating up all morning (single zone + AC schedule). Worth expert review; it only affects AC sizing cost.
+
+## Task 3 findings
+
+- **Settings:** "fast" now means 2 timesteps per hour. Tested on 8 designs against the most accurate settings: annual cooling within ±0.8%, comfort within ±0.5 points, peak cooling up to 10% lower; 2.5x faster.
+- **Speed on this laptop:** a single run takes ~1.5 s, but 10 parallel runs share a 15 W chip, so sustained throughput is **~91 designs/min**. Full batch: **about 3h 40m** (600 rows already done). Setting Windows power mode to "Best performance" may shorten this.
+- **Physics checks:** all 19 checks pass on 52 test designs and on 600 batch designs (every one-change pair moves the right quantity the right way).
+- **Real effect found:** with a white cool roof and no full-time AC, adding roof insulation *raises* roof heat gain (the bare slab cools to the night sky; insulation blocks that). Good material for a "predict" question in the game.
 
 ## 12. Risks
 

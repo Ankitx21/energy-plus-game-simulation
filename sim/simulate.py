@@ -141,11 +141,11 @@ def parse_results(sql_path: Path, design: dict) -> dict:
     }
 
 
-def run_design(design: dict, workdir: Path, keep: bool = False, timeout: int = 300) -> dict:
+def run_design(design: dict, workdir: Path, keep: bool = False, timeout: int = 300, settings: str = "fast") -> dict:
     """Write the IDF, run EnergyPlus, parse the results. Raises SimulationError on failure."""
     workdir.mkdir(parents=True, exist_ok=True)
     idf = workdir / "in.idf"
-    idf.write_text(make_idf(design), encoding="utf-8")
+    idf.write_text(make_idf(design, settings=settings), encoding="utf-8")
     t0 = time.perf_counter()
     proc = subprocess.run([str(ENERGYPLUS), "-w", str(I.CITY["weather_file"]), "-d", str(workdir), str(idf)],
                           capture_output=True, text=True, timeout=timeout)
