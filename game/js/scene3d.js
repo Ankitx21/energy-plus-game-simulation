@@ -411,8 +411,8 @@ export function createScene(container, meta, opts = {}) {
   }
 
   // ---------- overlays ----------
-  const overlay = { arrows: false, heatmap: false, shadow: true };
-  let heatRaw = null, currentFacades = null, arrowsGroup = null, heatLabels = null, lastShadow = null;
+  const overlay = { arrows: false, heatmap: false, shadow: true, wwr: false };
+  let heatRaw = null, currentFacades = null, arrowsGroup = null, heatLabels = null, wwrLabels = null, lastShadow = null;
   const heatMats = [];
   function setHeat(raw) { heatRaw = raw; applyOverlays(); }
   function setOverlays(o) { Object.assign(overlay, o); applyOverlays(); }
@@ -426,6 +426,7 @@ export function createScene(container, meta, opts = {}) {
     const H = geo.floors * geo.floor_to_floor;
     disposeGroup(arrowsGroup); arrowsGroup = null;
     disposeGroup(heatLabels); heatLabels = null;
+    disposeGroup(wwrLabels); wwrLabels = null;
     heatMats.forEach(m => m.dispose()); heatMats.length = 0;
     // heat map: recolour walls (per facade) and the roof slab top by kWh per m²
     let hm = null;
@@ -452,6 +453,15 @@ export function createScene(container, meta, opts = {}) {
       const rl = textSprite(`Roof: ${Math.round(hm.values.roof.perM2)} kWh/m²`, { size: 0.6, depthTest: false });
       rl.position.set(0, H + 1.6, 0); rl.renderOrder = 10; heatLabels.add(rl);
       scene.add(heatLabels);
+    }
+    if (overlay.wwr) {  // window-to-wall ratio and glass area on each facade (feature 2)
+      wwrLabels = new THREE.Group();
+      for (const f of currentFacades) {
+        const lab = textSprite(`${f.compass} wall: ${Math.round(f.wwr * 100)}% glass · ${f.windows.length} windows · ${f.window_area.toFixed(1)} m²`, { size: 0.55, depthTest: false, bg: 'rgba(225,240,255,0.92)' });
+        lab.position.copy(V(f.A[0] + f.t[0] * f.length / 2 + f.n[0] * 0.9, f.A[1] + f.t[1] * f.length / 2 + f.n[1] * 0.9, 4.6));
+        lab.renderOrder = 11; wwrLabels.add(lab);
+      }
+      scene.add(wwrLabels);
     }
     if (overlay.arrows && heatRaw) {
       arrowsGroup = buildArrows(heatRaw, currentFacades, H, textSprite).group;

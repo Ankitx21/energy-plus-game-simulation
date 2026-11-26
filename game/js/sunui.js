@@ -16,6 +16,7 @@ export function sunControlsHTML() {
       <button class="vbtn ov" data-ov="arrows" aria-pressed="false">Heat arrows</button>
       <button class="vbtn ov" data-ov="heatmap" aria-pressed="false">Heat map</button>
       <button class="vbtn ov" data-ov="shadow" aria-pressed="true">Shadow %</button>
+      <button class="vbtn ov" data-ov="wwr" aria-pressed="false">Window %</button>
       <label class="qual">Quality <select id="squal">
         <option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
     </div>
@@ -74,9 +75,9 @@ export function attachViewControls(root, scene) {
 }
 export function savedQuality() { try { return localStorage.getItem('nzb-quality') || undefined; } catch (e) { return undefined; } }
 
-// Overlay toggles (heat arrows, heat map, shadow %) and the readouts that go with them
+// Overlay toggles (heat arrows, heat map, shadow %, window %) and the readouts that go with them
 export function attachOverlayControls(root, scene, onToggle) {
-  const state = { arrows: false, heatmap: false, shadow: true };
+  const state = { arrows: false, heatmap: false, shadow: true, wwr: false };
   root.querySelectorAll('[data-ov]').forEach(b => b.onclick = () => {
     state[b.dataset.ov] = !state[b.dataset.ov];
     b.setAttribute('aria-pressed', state[b.dataset.ov]);

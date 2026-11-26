@@ -5,6 +5,7 @@ import { drawScene2D } from './scene2d.js';
 import { createScene, webglAvailable } from './scene3d.js';
 import { sunControlsHTML, attachSunControls, attachViewControls, savedQuality, attachOverlayControls, renderShadowReadout } from './sunui.js';
 import { RAMP_CSS } from './overlays3d.js';
+import { predictHTML, checkPrediction, revealHTML, facadeTableHTML, heatChartHTML, advice } from './features.js';
 
 const $ = q => document.querySelector(q);
 const fmtL = x => '₹' + (x / 1e5).toFixed(1) + ' L';
@@ -24,7 +25,8 @@ const GROUPS = [
 ];
 
 const S = { city: null, level: null, view: 'levels', ch: null, runs: [], cur: null, simsLeft: 0, busy: false,
-            settings: { tariff: 7, subsidy: true }, progress: {} };
+            settings: { tariff: 7, subsidy: true }, progress: {}, tally: { right: 0, total: 0 }, predictOff: false };
+try { S.predictOff = localStorage.getItem('nzb-predict-off') === '1'; } catch (e) { /* private mode */ }
 try { S.progress = JSON.parse(localStorage.getItem('nzb-progress-v2') || '{}'); } catch (e) { /* private mode */ }
 const save = () => { try { localStorage.setItem('nzb-progress-v2', JSON.stringify(S.progress)); } catch (e) { /* ignore */ } };
 
@@ -93,7 +95,7 @@ function renderLevels() {
 function startLevel() {
   const m = S.city.meta;
   S.ch = { ...m.base_design, ac: '3star', pv: 0 };
-  S.runs = []; S.simsLeft = S.level.simulations;
+  S.runs = []; S.simsLeft = S.level.simulations; S.tally = { right: 0, total: 0 };
   if (!commitRun("Developer's draft")) {
     $('#app').innerHTML = `<div class="loading err">The developer's draft has not been simulated yet. Re-export the table when the batch has reached it.</div>`;
     return;
@@ -126,7 +128,7 @@ function renderGame() {
       ${GROUPS.map(([g, ids]) => `<div class="og"><h4>${g}</h4>${ids.map(id => { const o = defs[id]; return `
         <div class="opt" id="o-${id}"><div class="ol">${o.label}<span class="pend" title="Changed since last simulation"></span>${o.sim ? '' : '<span class="od" style="margin:0 0 0 auto">browser calc</span>'}</div>
         <div class="chips">${o.choices.map(c => `<button class="chip" data-o="${id}" data-k="${c.id}">${c.label}</button>`).join('')}</div>
-        <div class="od" id="d-${id}"></div></div>`; }).join('')}</div>`).join('')}
+        <div class="od" id="d-${id}"></div></div>`; }).join('')}${g === 'Windows' ? '<div class="opt"><div class="ol">Glass on each facade</div><div id="ftab"></div></div>' : ''}</div>`).join('')}
       <div class="og"><h4>Solar PV</h4><div class="opt" id="o-pv"><div class="ol">Roof coverage <span class="pend"></span><span class="od" style="margin:0 0 0 auto">browser calc</span></div>
         <input type="range" id="pv" min="0" max="100" step="5" aria-label="Solar PV roof coverage"><div class="od" id="d-pv"></div></div></div>
       <div class="og"><h4>Money</h4><div class="money">
@@ -143,6 +145,8 @@ function renderGame() {
         <div class="fig"><svg id="mchart"></svg></div>
         <div class="legend"><span><i style="background:var(--sky)"></i>Cooling</span><span><i style="background:var(--lat)"></i>Heating</span><span><i style="background:#9a948c"></i>Fans, lights, plugs</span><span><i style="background:var(--sol);border-radius:50%"></i>Solar generation</span></div>
       </div>
+      <div class="card" id="heatcard"><h3>Where the heat comes from</h3><div id="hf"></div>
+        <div class="advice" id="advice"></div></div>
     </section>
     <aside class="res" id="res"></aside>
     <div class="lower">
@@ -177,18 +181,50 @@ function refreshRuns() {
   for (const u of S.runs) { u.r = evaluate(S.city, u.ch, S.settings); u.e = score(S.level, u.r); }
 }
 
+function changedLabels() {
+  const defs = optionDefs(), out = [];
+  for (const [k, v] of Object.entries(S.ch)) {
+    if (v === S.cur.ch[k]) continue;
+    if (k === 'pv') out.push(`solar ${S.cur.ch.pv}% → ${v}%`);
+    else out.push(`${defs[k].label.replace(/^./, c => c.toLowerCase())} → ${defs[k].choices.find(c => c.id === v).label}`);
+  }
+  return out;
+}
+
 function doSim() {
   if (S.busy || !changed() || S.simsLeft <= 0) return;
-  const sc = $('#scan'), row = S.city.rowOf(S.ch);
+  const row = S.city.rowOf(S.ch);
   if (!S.city.has(row)) {
+    const sc = $('#scan');
     sc.textContent = `Row ${fmtN(row + 1)} has not been simulated yet: the EnergyPlus batch is still running.`;
     sc.classList.add('on'); setTimeout(() => sc.classList.remove('on'), 1800);
     return;
   }
+  if (S.predictOff) { runSim(null); return; }
+  // Feature 1: predict before you simulate
+  $('#dlg').innerHTML = predictHTML(changedLabels());
+  $('#modal').classList.add('on');
+  const pick = name => document.querySelector(`input[name="${name}"]:checked`)?.value || null;
+  $('#pgo').onclick = () => { const p = { eui: pick('p-eui'), comfort: pick('p-comfort') }; closeModal(); runSim(p.eui || p.comfort ? p : null); };
+  $('#pskip').onclick = () => { closeModal(); runSim(null); };
+  $('#pnever').onchange = e => { S.predictOff = e.target.checked; try { localStorage.setItem('nzb-predict-off', S.predictOff ? '1' : '0'); } catch (err) { /* ignore */ } };
+  document.querySelector('input[name="p-eui"]').focus();
+}
+
+function runSim(pred) {
+  const sc = $('#scan'), row = S.city.rowOf(S.ch), prev = S.cur;
   S.busy = true; S.simsLeft--;
   sc.textContent = `Looking up row ${fmtN(row + 1)} of ${fmtN(S.city.meta.rows)}…`; sc.classList.add('on');
   const fast = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  setTimeout(() => { commitRun('Run ' + S.runs.length); sc.classList.remove('on'); S.busy = false; update(); }, fast ? 60 : 650);
+  setTimeout(() => {
+    commitRun('Run ' + S.runs.length);
+    if (pred) {
+      const rows = checkPrediction(pred, prev.r, S.cur.r);
+      S.tally.right += rows.filter(r => r.right).length; S.tally.total += rows.length;
+      S.cur.reveal = { rows, tally: { ...S.tally } };
+    }
+    sc.classList.remove('on'); S.busy = false; update();
+  }, fast ? 60 : 650);
 }
 
 function update() {
@@ -229,7 +265,20 @@ function update() {
   drawMonthly($('#mchart'), S.cur.r);
   const r = S.cur.r;
   $('#mtitle').textContent = r.pv >= r.use ? 'Month by month: solar covers the year' : r.pv > 0 ? 'Month by month: where solar falls short' : 'Month by month: energy used, no solar yet';
-  renderResults(); renderHist(); renderBTS(); renderMbar();
+  renderResults(); renderHist(); renderBTS(); renderMbar(); renderHeat();
+  const prevFac = S.city.facadesFor(S.cur.ch), fac = S.city.facadesFor(S.ch);
+  $('#ftab').innerHTML = facadeTableHTML(fac, prevFac);
+}
+
+// Feature 3: heat-flow breakdown of the last simulated design, compared with the run before it, plus advice
+function renderHeat() {
+  const cur = S.cur, prev = S.runs[cur.n - 1];
+  const fac = S.city.facadesFor(cur.ch);
+  $('#hf').innerHTML = heatChartHTML(cur.r.raw, fac, prev?.r.raw, prev && S.city.facadesFor(prev.ch));
+  const tips = advice(S.city, cur.ch, cur.r.raw, fac);
+  S._tips = tips;
+  $('#advice').innerHTML = tips.length ? `<h4>What to try next</h4>${tips.map((t, i) => `<div class="tip"><div><b>${t.text}</b><small>${t.why}</small></div><button data-tip="${i}">Try it</button></div>`).join('')}` : '';
+  document.querySelectorAll('[data-tip]').forEach(b => b.onclick = () => { Object.assign(S.ch, S._tips[+b.dataset.tip].change); update(); });
 }
 
 // Legend for the heat overlays (top-right of the 3D view)
@@ -254,6 +303,7 @@ function renderResults() {
   const mv = bestMoves(S.city, lv, S.cur.ch, S.settings).filter(x => x.gain > 0 && !(x.e.over && !e.over)).slice(0, 3);
   S._moves = mv;
   $('#res').innerHTML = `
+    ${S.cur.reveal ? revealHTML(S.cur.reveal.rows, S.cur.reveal.tally) : ''}
     ${changed() ? `<div class="stale">Showing <b>${S.cur.label}</b>. You've changed the design since: simulate to see the new results.</div>` : ''}
     <div class="nzrow">
       <svg class="ring" viewBox="0 0 120 120" aria-label="Net zero ${pct(r.nz)}">
