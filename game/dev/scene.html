@@ -16,7 +16,7 @@ const meta = await fetch('../data/blr.json').then(r => r.json());
 const q = new URLSearchParams(location.search);
 const design = { ...meta.base_design, ac: '3star', pv: 0 };
 for (const [k, v] of q) if (k in design) design[k] = k === 'pv' ? +v : v;
-const s = createScene(document.getElementById('v'), meta, { preserveDrawingBuffer: true });
+const s = createScene(document.getElementById('v'), meta, { preserveDrawingBuffer: true, still: true });
 if (q.get('cam')) s.camera.position.set(...q.get('cam').split(',').map(Number));
 if (q.get('target')) s.controls.target.set(...q.get('target').split(',').map(Number));
 if (q.get('sun')) s.setSun(...q.get('sun').split(',').map(Number));
@@ -26,7 +26,9 @@ if (q.get('month')) {
   s.setSunPath(sunPath(m, DAY_OF_MONTH, meta.city));
   const p = sunPosition(m, DAY_OF_MONTH, h, meta.city); s.setSun(p.azimuth, p.elevation);
 }
-s.update(design);
+s.update(design, { acUnits: +(q.get('ac') ?? 2) });
+if (q.get('view')) { s.setView(q.get('view'), { instant: true }); }
+if (q.get('quality')) s.setQuality(q.get('quality'));
 s.renderNow();
 document.getElementById('info').textContent = Object.entries(design).map(([k, v]) => `${k}=${v}`).join(' ') + ` | sun az ${s.sunState.azimuth.toFixed(1)} el ${s.sunState.elevation.toFixed(1)}`;
 document.title = 'ready';

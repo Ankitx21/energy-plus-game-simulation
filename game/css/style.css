@@ -173,3 +173,9 @@ td button{border:1px solid var(--line);background:var(--chip);border-radius:7px;
 .sunbar .sread{font-variant-numeric:tabular-nums;color:var(--mut);white-space:nowrap}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media(max-width:720px){.sunbar .sread{width:100%;white-space:normal}}
+.sunbar .vrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%}
+.sunbar .vbtn{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:8px;padding:4px 10px;min-height:32px}
+.sunbar .vbtn:hover{border-color:var(--sol)}
+.sunbar .qual{margin-left:auto;font-size:13px;color:var(--mut);display:flex;align-items:center;gap:6px}
+.sunbar .qual select{min-height:32px;padding:3px 8px;font-size:13px}
+.scene{height:clamp(340px,46vw,500px)}
