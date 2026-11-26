@@ -26,10 +26,11 @@ RULES = [
     ("shading", "none", "overhang", "cooling", "down", "less sunlight in means less to cool"),
     ("roof_finish", "normal", "cool", "roof", "down", "a white roof reflects sunlight"),
     ("roof_finish", "normal", "cool", "cooling", "down", "less roof heat means less to cool"),
-    # Real effect found in task 3: under a white cool roof without full-time AC, a bare slab sheds heat to the
-    # night sky; insulation blocks that, so roof heat gain can rise. Rule therefore excludes that case.
+    # Real effect found in task 3, confirmed on the full batch in task 4: under a white cool roof the slab takes in
+    # little sun, and a bare slab sheds indoor heat to the night sky. AC runs only 13 h a day, so this holds in the
+    # AC modes too (roof gain rose in 644 of 2592 cool-roof AC pairs, cooling rose in most). Rule covers normal finish only.
     ("roof", "bare", "insulated", "roof", "down", "insulation slows heat through the roof",
-     lambda d: d["roof_finish"] == "normal" or d["cooling"] in ("ac24", "ac26")),
+     lambda d: d["roof_finish"] == "normal"),
     ("glazing", "single_clear", "double_lowe", "windows_solar", "down", "low-e glass lets in less solar heat"),
     ("lighting", "fluorescent", "led", "lighting", "down", "LEDs use less electricity"),
     ("lighting", "fluorescent", "led", "lights_heat", "down", "LEDs give off less heat"),

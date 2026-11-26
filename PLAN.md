@@ -158,14 +158,14 @@ energy-simulation-game/
 | 1 | **Setup and inputs:** folders, Bengaluru weather file, `sim/inputs.py` with Indian material values (ECBC/ENS), schedules, IMAC, tariff, CPWD costs | You can read and check every input value in one file | — | ✅ done |
 | 2 | **Shoebox model:** `make_idf.py`; build and run 1 design | 1 sample model runs; results shown in plain language | ~1 min | ✅ done |
 | 3 | **Test batch:** ~50 designs, timing, sanity checks (shading lowers cooling, cool roof lowers roof gain, energy per m² in a realistic range) | Checks pass; estimated full-batch time known | ~5 min | ✅ done |
-| 4 | **Full batch:** all 20,736 designs | All runs finished (can resume if stopped) | **~3 h** | ⏳ running |
+| 4 | **Full batch:** all 20,736 designs | All runs finished (can resume if stopped) | **~3 h** | ✅ done |
 | 5 | **Export:** one table < 5 MB, plus "what matters most" ranking and Pareto front | Data file ready; summary of key findings for Bengaluru | ~5 min | ☐ |
 | **B. Game** (tasks 6–9 can be done while task 4 runs) |||||
 | 6 | **Game skeleton:** split prototype into files, Bengaluru-only start screen, new option panel, load table, browser maths | Game plays with real data (still 2D) | — | ✅ done |
 | 7 | **3D building:** geometry matching the shoebox, windows per facade, shading, materials that change with options | Building changes correctly with every option | — | ✅ done |
 | 8 | **Sun and shadows:** suncalc, time/month controls, play the day, sun path, compass, sky | Real sun position; shadows move with time and month | — | ✅ done |
 | 9 | **Site, details, camera, quality:** compound, trees, neighbours, tank, mumty, AC units, fans, presets, quality setting | Scene looks finished; runs smoothly | — | ✅ done |
-| 10 | **Overlays:** heat-flow arrows, facade heat map, window-shadow % readout | Overlays match simulated gains | — | ✅ awaiting your review |
+| 10 | **Overlays:** heat-flow arrows, facade heat map, window-shadow % readout | Overlays match simulated gains | — | ✅ done |
 | 11 | **Features 1–3:** predict-before-simulate, window ratio per facade, heat-flow chart + advice | Working in game | — | ☐ |
 | 12 | **Features 4–5:** design explorer (scatter + Pareto, click to load), what matters most | Working in game | — | ☐ |
 | 13 | **Feature 6:** bill, payback, 3 missions | Working in game | — | ☐ |
@@ -218,6 +218,12 @@ git checkout main                 # back to the latest approved version
 - **Speed on this laptop:** a single run takes ~1.5 s, but 10 parallel runs share a 15 W chip, so sustained throughput is **~91 designs/min**. Full batch: **about 3h 40m** (600 rows already done). Setting Windows power mode to "Best performance" may shorten this.
 - **Physics checks:** all 19 checks pass on 52 test designs and on 600 batch designs (every one-change pair moves the right quantity the right way).
 - **Real effect found:** with a white cool roof and no full-time AC, adding roof insulation *raises* roof heat gain (the bare slab cools to the night sky; insulation blocks that). Good material for a "predict" question in the game.
+
+## Task 4 notes
+- All 20,736 designs simulated (8 h 21 m wall time, including two laptop sleeps; about 90 designs/min when awake).
+- 8 runs timed out around the sleeps; a re-run retried them with no errors.
+- `check_results.py`: all checks pass. Ranges: energy use 17–74 kWh/m²·yr, comfort 78–100%, peak cooling up to 29.1 kW.
+- Finding: with a **white cool roof**, adding roof insulation raises roof heat gain in 644 of 2,592 AC pairs and raises yearly cooling in most of them (median +470 to +870 kWh). The bare slab sheds indoor heat to the night sky, and AC runs only 13 h a day. With a normal roof, insulation always helps (cooling −1,000 to −8,000 kWh). The roof rule now covers the normal finish only. Good teaching moment for the game: "cool roof first; insulation on top of it may not pay".
 
 ## Task 6 notes
 
