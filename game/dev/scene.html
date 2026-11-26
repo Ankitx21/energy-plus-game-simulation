@@ -20,9 +20,15 @@ const s = createScene(document.getElementById('v'), meta, { preserveDrawingBuffe
 if (q.get('cam')) s.camera.position.set(...q.get('cam').split(',').map(Number));
 if (q.get('target')) s.controls.target.set(...q.get('target').split(',').map(Number));
 if (q.get('sun')) s.setSun(...q.get('sun').split(',').map(Number));
+if (q.get('month')) {
+  const { sunPosition, sunPath, DAY_OF_MONTH } = await import('../js/sun.js');
+  const m = +q.get('month'), h = +(q.get('time') || 12);
+  s.setSunPath(sunPath(m, DAY_OF_MONTH, meta.city));
+  const p = sunPosition(m, DAY_OF_MONTH, h, meta.city); s.setSun(p.azimuth, p.elevation);
+}
 s.update(design);
 s.renderNow();
-document.getElementById('info').textContent = Object.entries(design).map(([k, v]) => `${k}=${v}`).join(' ');
+document.getElementById('info').textContent = Object.entries(design).map(([k, v]) => `${k}=${v}`).join(' ') + ` | sun az ${s.sunState.azimuth.toFixed(1)} el ${s.sunState.elevation.toFixed(1)}`;
 document.title = 'ready';
 </script>
 </body>
