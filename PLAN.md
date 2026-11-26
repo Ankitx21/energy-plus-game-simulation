@@ -122,11 +122,17 @@ energy-simulation-game/
 │  ├─ export_table.py           results → one compact table for the game
 │  ├─ weather/                  Bengaluru weather file
 │  └─ runs/                     raw EnergyPlus outputs (large, not shipped)
+├─ play.bat                     double-click to start the game (local web server + browser)
 ├─ game/                        the game (open via a local web server)
 │  ├─ index.html
-│  ├─ css/
-│  ├─ js/                       engine, scene, sun, overlays, charts, ui, missions
-│  ├─ data/                     blr table (< 5 MB) + metadata
+│  ├─ css/style.css
+│  ├─ js/main.js                start-up and loading
+│  ├─ js/data.js                loads the table, design ↔ row lookup
+│  ├─ js/engine.js              browser maths: AC efficiency, solar, cost, bill, score, best moves
+│  ├─ js/ui.js                  screens and panels
+│  ├─ js/charts.js              SVG charts
+│  ├─ js/scene2d.js             temporary 2D drawing (replaced by 3D in task 7)
+│  ├─ data/                     blr.bin table (2.4 MB) + blr.json metadata, from sim/export_table.py
 │  └─ vendor/                   three.js, suncalc (local copies, works offline)
 └─ docs/
    ├─ SETUP.md                  plain-language setup and run guide
@@ -144,10 +150,10 @@ energy-simulation-game/
 | 1 | **Setup and inputs:** folders, Bengaluru weather file, `sim/inputs.py` with Indian material values (ECBC/ENS), schedules, IMAC, tariff, CPWD costs | You can read and check every input value in one file | — | ✅ done |
 | 2 | **Shoebox model:** `make_idf.py`; build and run 1 design | 1 sample model runs; results shown in plain language | ~1 min | ✅ done |
 | 3 | **Test batch:** ~50 designs, timing, sanity checks (shading lowers cooling, cool roof lowers roof gain, energy per m² in a realistic range) | Checks pass; estimated full-batch time known | ~5 min | ✅ done |
-| 4 | **Full batch:** all 20,736 designs | All runs finished (can resume if stopped) | **~3 h** | ☐ |
+| 4 | **Full batch:** all 20,736 designs | All runs finished (can resume if stopped) | **~3 h** | ⏳ running |
 | 5 | **Export:** one table < 5 MB, plus "what matters most" ranking and Pareto front | Data file ready; summary of key findings for Bengaluru | ~5 min | ☐ |
 | **B. Game** (tasks 6–9 can be done while task 4 runs) |||||
-| 6 | **Game skeleton:** split prototype into files, Bengaluru-only start screen, new option panel, load table, browser maths | Game plays with real data (still 2D) | — | ☐ |
+| 6 | **Game skeleton:** split prototype into files, Bengaluru-only start screen, new option panel, load table, browser maths | Game plays with real data (still 2D) | — | ✅ awaiting your review |
 | 7 | **3D building:** geometry matching the shoebox, windows per facade, shading, materials that change with options | Building changes correctly with every option | — | ☐ |
 | 8 | **Sun and shadows:** suncalc, time/month controls, play the day, sun path, compass, sky | Overhang visibly shades windows at May noon | — | ☐ |
 | 9 | **Site, details, camera, quality:** compound, trees, neighbours, tank, mumty, AC units, fans, presets, quality setting | Scene looks finished; runs smoothly | — | ☐ |
@@ -204,6 +210,15 @@ git checkout main                 # back to the latest approved version
 - **Speed on this laptop:** a single run takes ~1.5 s, but 10 parallel runs share a 15 W chip, so sustained throughput is **~91 designs/min**. Full batch: **about 3h 40m** (600 rows already done). Setting Windows power mode to "Best performance" may shorten this.
 - **Physics checks:** all 19 checks pass on 52 test designs and on 600 batch designs (every one-change pair moves the right quantity the right way).
 - **Real effect found:** with a white cool roof and no full-time AC, adding roof insulation *raises* roof heat gain (the bare slab cools to the night sky; insulation blocks that). Good material for a "predict" question in the game.
+
+## Task 6 notes
+
+- `sim/export_table.py` was written now (not in task 5) because the game needs the data format; task 5 re-runs it on the full results and adds rankings and the Pareto front.
+- Lookups in the browser match the Python results exactly (draft: cooling 40,653 kWh, comfort 91.6%, peak 28.1 kW).
+- Solar yield from pvlib with the same weather file: 1,483 kWh per kWp per year.
+- Draft economics: AC ₹3.0 L; full-roof solar (13.2 kWp) makes it net zero but costs ₹9.5 L, over the placeholder ₹8 L budget.
+- To tune in task 5: score weights (an overhang currently lowers the score because its cost outweighs its energy saving at the placeholder targets), budget, energy target.
+- Removed from the prototype: other cities, 2050 climate toggle, daylight score (no daylight data in the table).
 
 ## 12. Risks
 
