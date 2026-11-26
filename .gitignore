@@ -30,3 +30,6 @@ Thumbs.db
 
 # Scratch run folders from simulate.py
 sim/sample/*/
+
+# Game data: committed in task 5 once the full batch is exported
+game/data/
