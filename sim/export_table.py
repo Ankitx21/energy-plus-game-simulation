@@ -166,9 +166,12 @@ def main():
                       "solar": I.SOLAR_PV, "tariff_rs_per_kwh": I.TARIFF["flat_rs_per_kwh"],
                       "grid_kg_co2_per_kwh": I.GRID_EMISSION_KG_PER_KWH, "fans": I.FANS},
         "cooling_modes": {k: {"ac": v["ac"], "fans": v["fans"]} for k, v in I.COOLING.items()},
-        # Placeholder level settings; final values are set in task 5 from the full results.
-        "level": {"title": "A family home in Bengaluru", "budget_rs": 800000, "eui_target": 40, "comfort_target": 90,
-                  "simulations": 8,
+        # Level settings tuned in task 5 from the full results (see docs/FINDINGS.md):
+        #  - bolting solar onto the developer's draft costs about Rs 8.2 L, so it fails the Rs 7 L budget
+        #  - a good AC design uses about 28 kWh/m2.yr; fans-only designs reach 17-23
+        #  - only 816 fans-only designs reach 92 % comfort (the no-AC challenge)
+        "level": {"title": "A family home in Bengaluru", "budget_rs": 700000, "eui_target": 30, "comfort_target": 90,
+                  "noac_comfort_target": 92, "simulations": 8,
                   "brief": "A two-storey home for a family of four. The developer's draft is a glassy box with "
                            "AC everywhere. Make it net zero and comfortable without blowing the budget."},
     }

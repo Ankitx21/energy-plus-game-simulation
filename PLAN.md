@@ -159,7 +159,7 @@ energy-simulation-game/
 | 2 | **Shoebox model:** `make_idf.py`; build and run 1 design | 1 sample model runs; results shown in plain language | ~1 min | ✅ done |
 | 3 | **Test batch:** ~50 designs, timing, sanity checks (shading lowers cooling, cool roof lowers roof gain, energy per m² in a realistic range) | Checks pass; estimated full-batch time known | ~5 min | ✅ done |
 | 4 | **Full batch:** all 20,736 designs | All runs finished (can resume if stopped) | **~3 h** | ✅ done |
-| 5 | **Export:** one table < 5 MB, plus "what matters most" ranking and Pareto front | Data file ready; summary of key findings for Bengaluru | ~5 min | ☐ |
+| 5 | **Export:** one table < 5 MB, plus "what matters most" ranking and Pareto front | Data file ready; summary of key findings for Bengaluru | ~5 min | ✅ done |
 | **B. Game** (tasks 6–9 can be done while task 4 runs) |||||
 | 6 | **Game skeleton:** split prototype into files, Bengaluru-only start screen, new option panel, load table, browser maths | Game plays with real data (still 2D) | — | ✅ done |
 | 7 | **3D building:** geometry matching the shoebox, windows per facade, shading, materials that change with options | Building changes correctly with every option | — | ✅ done |
@@ -224,6 +224,13 @@ git checkout main                 # back to the latest approved version
 - 8 runs timed out around the sleeps; a re-run retried them with no errors.
 - `check_results.py`: all checks pass. Ranges: energy use 17–74 kWh/m²·yr, comfort 78–100%, peak cooling up to 29.1 kW.
 - Finding: with a **white cool roof**, adding roof insulation raises roof heat gain in 644 of 2,592 AC pairs and raises yearly cooling in most of them (median +470 to +870 kWh). The bare slab sheds indoor heat to the night sky, and AC runs only 13 h a day. With a normal roof, insulation always helps (cooling −1,000 to −8,000 kWh). The roof rule now covers the normal finish only. Good teaching moment for the game: "cool roof first; insulation on top of it may not pay".
+
+## Task 5 notes
+- Final export: all 20,736 designs, `game/data/blr.bin` 2.36 MB + `blr.json` 57 kB (now committed).
+- `game/js/analysis.js`: whole-table maths shared by the game and `sim/findings.mjs` (Node) so both always agree: evaluate every design, Pareto front, "what matters most" (average effect of each choice), best answer for each mission.
+- `docs/FINDINGS.md`: key findings in plain words, ranges, ranking, Pareto front, mission answers. Regenerate with `node sim/findings.mjs --md docs/FINDINGS.md`.
+- Level tuned: budget ₹7 L (bolting solar on the draft costs ₹8.2 L), energy target 30 kWh/m²·yr, comfort 90 %, no-AC challenge 92 %.
+- Score rebalanced (out of 1000): net zero 350, comfort 250 (relative to target), energy 200 (linear from 80 to target), budget 200. Every sensible single move now raises the score.
 
 ## Task 6 notes
 
