@@ -61,13 +61,11 @@ export function createScene(container, meta, opts = {}) {
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#bcdcf3');
-  scene.fog = new THREE.Fog('#d6e8f5', 60, 160);
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environmentIntensity = 0.55;
 
-  const camera = new THREE.PerspectiveCamera(38, 1, 0.3, 400);
+  const camera = new THREE.PerspectiveCamera(38, 1, 0.3, 500);
   camera.position.set(15.5, 10, 17.5);
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.target.set(0, 3, 0);
@@ -75,22 +73,99 @@ export function createScene(container, meta, opts = {}) {
   controls.maxPolarAngle = Math.PI * 0.49;
   controls.minDistance = 7; controls.maxDistance = 75;
 
-  // Light: sky + a sun (a fixed placeholder here; task 8 drives it from the real sun position)
+  // Sky dome: vertical gradient whose colours follow the sun's height (night, dawn/dusk, day)
+  const skyUniforms = { top: { value: new THREE.Color() }, horizon: { value: new THREE.Color() },
+                        glowDir: { value: new THREE.Vector3(0, 1, 0) }, glow: { value: new THREE.Color() } };
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(300, 32, 16), new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false, uniforms: skyUniforms,
+    vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+    fragmentShader: [
+      'uniform vec3 top; uniform vec3 horizon; uniform vec3 glow; uniform vec3 glowDir; varying vec3 vDir;',
+      'void main(){ float h = max(vDir.y, 0.0); vec3 c = mix(horizon, top, pow(h, 0.55));',
+      '  float g = pow(max(dot(normalize(vDir), glowDir), 0.0), 8.0) * (1.0 - h * 0.6);',
+      '  gl_FragColor = vec4(c + glow * g, 1.0); }'].join('\n'),
+  }));
+  scene.add(sky);
+  scene.fog = new THREE.Fog('#d6e8f5', 70, 200);
+
+  // Lights: sky light + the sun (positioned from the real sun position by setSun)
   const hemi = new THREE.HemisphereLight('#dfeaff', '#8a7a5c', 0.85);
   scene.add(hemi);
   const sun = new THREE.DirectionalLight('#fff3df', 2.4);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, { left: -17, right: 17, top: 17, bottom: -17, near: 1, far: 90 });
+  Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 100 });
   sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
   scene.add(sun, sun.target);
-  function setSun(azimuthDeg, elevationDeg) {
-    const a = THREE.MathUtils.degToRad(azimuthDeg), e = THREE.MathUtils.degToRad(elevationDeg), d = 45;
-    sun.position.copy(V(Math.sin(a) * Math.cos(e) * d, Math.cos(a) * Math.cos(e) * d, Math.sin(e) * d));
-    sun.visible = elevationDeg > 0;
+
+  // Visible sun disc, the day's path arc with hour marks, and the current position on it
+  const ARC_R = 24, SUN_R = 250;
+  const glowTex = (() => {
+    const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+    const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.addColorStop(0, 'rgba(255,250,225,1)'); g.addColorStop(0.18, 'rgba(255,236,170,1)');
+    g.addColorStop(0.35, 'rgba(255,214,120,0.45)'); g.addColorStop(1, 'rgba(255,200,100,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  })();
+  const sunDisc = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, depthWrite: false, fog: false, transparent: true }));
+  sunDisc.scale.set(46, 46, 1); scene.add(sunDisc);
+  const pathGroup = new THREE.Group(); scene.add(pathGroup);
+  const marker = new THREE.Mesh(new THREE.SphereGeometry(0.45, 20, 12), new THREE.MeshBasicMaterial({ color: '#ffc233', fog: false }));
+  scene.add(marker);
+  const dirOf = (az, el) => {
+    const a = THREE.MathUtils.degToRad(az), e = THREE.MathUtils.degToRad(el);
+    return V(Math.sin(a) * Math.cos(e), Math.cos(a) * Math.cos(e), Math.sin(e));
+  };
+
+  function setSunPath(points) {  // points: [{t, azimuth, elevation}] from sun.js
+    pathGroup.traverse(o => { o.geometry?.dispose(); if (o.material?.map) o.material.map.dispose(); });
+    pathGroup.clear();
+    const pts = points.map(p => dirOf(p.azimuth, Math.max(p.elevation, 0)).multiplyScalar(ARC_R));
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+      new THREE.LineDashedMaterial({ color: '#ffb000', dashSize: 0.6, gapSize: 0.35, fog: false }));
+    line.computeLineDistances(); pathGroup.add(line);
+    for (let h = Math.ceil(points[0].t); h <= Math.floor(points[points.length - 1].t); h++) {
+      const p = points.reduce((b, q) => Math.abs(q.t - h) < Math.abs(b.t - h) ? q : b);
+      if (p.elevation < 2) continue;
+      const pos = dirOf(p.azimuth, p.elevation).multiplyScalar(ARC_R);
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 6), new THREE.MeshBasicMaterial({ color: '#ffb000', fog: false }));
+      dot.position.copy(pos); pathGroup.add(dot);
+      if (h % 3 === 0) {
+        const lab = textSprite(`${h}:00`, { size: 0.7, color: '#7a4b00', bg: 'rgba(255,248,230,0.9)' });
+        lab.position.copy(pos).add(new THREE.Vector3(0, 0.9, 0)); pathGroup.add(lab);
+      }
+    }
     requestRender();
   }
-  setSun(150, 55);
+
+  const C = (a, b, t) => new THREE.Color(a).lerp(new THREE.Color(b), Math.min(1, Math.max(0, t)));
+  const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  let sunState = { azimuth: 150, elevation: 55 };
+  function setSun(azimuthDeg, elevationDeg) {
+    sunState = { azimuth: azimuthDeg, elevation: elevationDeg };
+    const dir = dirOf(azimuthDeg, elevationDeg), e = elevationDeg;
+    sun.position.copy(dir).multiplyScalar(60);
+    const day = smooth(-1, 12, e), golden = 1 - smooth(4, 25, e);
+    sun.intensity = 3.6 * smooth(-0.5, 8, e);
+    sun.color.copy(C('#fff3df', '#ffb070', golden));
+    sun.castShadow = e > 0;
+    hemi.intensity = 0.1 + 0.42 * smooth(-10, 20, e);
+    hemi.color.copy(C('#4a5a85', '#dfeaff', day));
+    const tw = smooth(-8, 2, e), dy = smooth(2, 18, e);   // night -> twilight -> day
+    skyUniforms.top.value.copy(C('#0a1330', '#33508f', tw)).lerp(new THREE.Color('#4f9be0'), dy);
+    skyUniforms.horizon.value.copy(C('#1b2747', '#f2a273', tw)).lerp(new THREE.Color('#cfe5f6'), dy);
+    skyUniforms.glow.value.copy(C('#000000', '#ff9c50', tw * (1 - dy * 0.85)));
+    skyUniforms.glowDir.value.copy(dir);
+    scene.fog.color.copy(skyUniforms.horizon.value);
+    scene.environmentIntensity = 0.1 + 0.22 * day;
+    sunDisc.position.copy(dir).multiplyScalar(SUN_R); sunDisc.visible = e > -1;
+    sunDisc.material.color.copy(C('#ffffff', '#ffb070', golden));
+    marker.position.copy(dirOf(azimuthDeg, Math.max(e, 0)).multiplyScalar(ARC_R)); marker.visible = e > -0.5;
+    const night = 1 - smooth(-4, 3, e);   // interior lights glow through the windows after dark
+    for (const k of ['glass_true', 'glass_false']) if (mats[k]) { mats[k].emissive.set('#ffcf8a'); mats[k].emissiveIntensity = 0.55 * night; }
+    requestRender();
+  }
 
   // Ground
   const grassTx = TX.grass();
@@ -110,15 +185,15 @@ export function createScene(container, meta, opts = {}) {
     return new THREE.MeshStandardMaterial({ map: t.map, bumpMap: t.bump, bumpScale: 0.8, roughness: cool ? 0.6 : 0.95 });
   })();
   const paint = mats.paint = new THREE.MeshStandardMaterial({ map: TX.paintedConcrete().map, roughness: 0.85 });
-  const interior = mats.interior = new THREE.MeshStandardMaterial({ color: '#d9cfbf', roughness: 0.95 });
-  const floorMat = mats.floor = new THREE.MeshStandardMaterial({ color: '#b9ab97', roughness: 0.7 });
+  const interior = mats.interior = new THREE.MeshStandardMaterial({ color: '#8f877c', roughness: 0.95 });
+  const floorMat = mats.floor = new THREE.MeshStandardMaterial({ color: '#8a7d6c', roughness: 0.7 });
   const plinthMat = mats.plinth = new THREE.MeshStandardMaterial({ color: '#7d756b', roughness: 0.9 });
   const frameMat = mats.frame = new THREE.MeshStandardMaterial({ color: '#3b3f44', roughness: 0.45, metalness: 0.5 });
   const sillMat = mats.sill = new THREE.MeshStandardMaterial({ color: '#5d5a56', roughness: 0.35, metalness: 0.1 });
   const louvreMat = mats.louvre = new THREE.MeshStandardMaterial({ color: '#9aa1a8', roughness: 0.4, metalness: 0.6 });
   const glassMat = lowe => mats['glass_' + lowe] ||= new THREE.MeshPhysicalMaterial({
-    color: lowe ? '#7fa9b5' : '#cfe6ee', metalness: 0, roughness: 0.04, transparent: true,
-    opacity: lowe ? 0.62 : 0.34, envMapIntensity: lowe ? 1.6 : 1.0, side: THREE.DoubleSide });
+    color: lowe ? '#8fb3bd' : '#d8ebf1', metalness: 0, roughness: 0.06, transparent: true,
+    opacity: lowe ? 0.78 : 0.6, envMapIntensity: lowe ? 1.4 : 0.9, side: THREE.DoubleSide });
   const panelMat = mats.panel = new THREE.MeshStandardMaterial({ map: solarPanelTexture(), roughness: 0.25, metalness: 0.3 });
   const mountMat = mats.mount = new THREE.MeshStandardMaterial({ color: '#a7adb3', roughness: 0.5, metalness: 0.6 });
 
@@ -244,9 +319,32 @@ export function createScene(container, meta, opts = {}) {
     requestRender();
   }
 
-  // North marker
-  const north = textSprite('N ↑', { size: 1.1, color: '#d9480f' });
-  north.position.copy(V(0, 15, 0.6)); scene.add(north);
+  // Compass rose on the ground around the house
+  const compass = (() => {
+    const N = 1024, c = document.createElement('canvas'); c.width = c.height = N;
+    const x = c.getContext('2d'), m = N / 2, R = N * 0.47;
+    x.strokeStyle = 'rgba(255,255,255,0.85)'; x.lineWidth = 6; x.beginPath(); x.arc(m, m, R, 0, Math.PI * 2); x.stroke();
+    x.lineWidth = 3; x.beginPath(); x.arc(m, m, R * 0.93, 0, Math.PI * 2); x.stroke();
+    for (let a = 0; a < 360; a += 15) {
+      const r = THREE.MathUtils.degToRad(a), l = a % 90 === 0 ? 0.86 : a % 45 === 0 ? 0.89 : 0.91;
+      x.lineWidth = a % 45 === 0 ? 6 : 3;
+      x.beginPath(); x.moveTo(m + Math.sin(r) * R * l, m - Math.cos(r) * R * l);
+      x.lineTo(m + Math.sin(r) * R * 0.93, m - Math.cos(r) * R * 0.93); x.stroke();
+    }
+    x.font = '800 54px Archivo, system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    for (const [t, a] of [['N', 0], ['E', 90], ['S', 180], ['W', 270]]) {
+      const r = THREE.MathUtils.degToRad(a);
+      x.fillStyle = t === 'N' ? '#d9480f' : 'rgba(255,255,255,0.95)';
+      x.fillText(t, m + Math.sin(r) * R * 0.78, m - Math.cos(r) * R * 0.78);
+    }
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(30, 30),
+      new THREE.MeshStandardMaterial({ map: t, transparent: true, depthWrite: false, roughness: 1 }));
+    mesh.rotation.x = -Math.PI / 2; mesh.position.y = 0.02; mesh.receiveShadow = true;
+    return mesh;
+  })();
+  scene.add(compass);
+  setSun(sunState.azimuth, sunState.elevation);
 
   // Render on demand
   controls.addEventListener('change', requestRender);
@@ -266,7 +364,7 @@ export function createScene(container, meta, opts = {}) {
   loop();
 
   return {
-    update, setSun, requestRender, camera, controls, renderer, scene,
+    update, setSun, setSunPath, requestRender, get sunState() { return sunState; }, camera, controls, renderer, scene,
     renderNow() { controls.update(); renderer.render(scene, camera); },
     dispose() { disposed = true; cancelAnimationFrame(raf); ro.disconnect(); clear(); renderer.dispose(); container.removeChild(renderer.domElement); },
   };

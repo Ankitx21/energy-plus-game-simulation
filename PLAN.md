@@ -132,6 +132,8 @@ energy-simulation-game/
 │  ├─ js/ui.js                  screens and panels
 │  ├─ js/charts.js              SVG charts
 │  ├─ js/scene3d.js             three.js house built from the exact simulated geometry
+│  ├─ js/sun.js                 sun position (NOAA equations), sunrise/sunset, daily sun path
+│  ├─ js/sunui.js               month selector, time slider, "play the day", readout
 │  ├─ js/textures.js            procedural materials (brick, AAC plaster, rammed earth, roofs, grass)
 │  ├─ js/scene2d.js             2D fallback for devices without WebGL
 │  ├─ dev/                      developer pages: scene.html (render any design), golden.html (golden-rule test)
@@ -159,7 +161,7 @@ energy-simulation-game/
 | **B. Game** (tasks 6–9 can be done while task 4 runs) |||||
 | 6 | **Game skeleton:** split prototype into files, Bengaluru-only start screen, new option panel, load table, browser maths | Game plays with real data (still 2D) | — | ✅ done |
 | 7 | **3D building:** geometry matching the shoebox, windows per facade, shading, materials that change with options | Building changes correctly with every option | — | ✅ done |
-| 8 | **Sun and shadows:** suncalc, time/month controls, play the day, sun path, compass, sky | Overhang visibly shades windows at May noon | — | ☐ |
+| 8 | **Sun and shadows:** suncalc, time/month controls, play the day, sun path, compass, sky | Real sun position; shadows move with time and month | — | ✅ awaiting your review |
 | 9 | **Site, details, camera, quality:** compound, trees, neighbours, tank, mumty, AC units, fans, presets, quality setting | Scene looks finished; runs smoothly | — | ☐ |
 | 10 | **Overlays:** heat-flow arrows, facade heat map, window-shadow % readout | Overlays match simulated gains | — | ☐ |
 | 11 | **Features 1–3:** predict-before-simulate, window ratio per facade, heat-flow chart + advice | Working in game | — | ☐ |
@@ -232,6 +234,15 @@ git checkout main                 # back to the latest approved version
 - **Solar maximum changed from 13.2 to 12.0 kWp** so the maths equals the 30-panel layout drawn on the roof (one end kept free for the mumty and tank in task 9). Panels tilt 13° towards the side facing closest to south; in the 45° orientations that side faces SE or SW, a small yield difference not modelled.
 - Materials are procedural (drawn in code), so no texture downloads; the game stays light and works offline.
 - Add `?play` to the game URL to jump straight into the level; `?2d` forces the 2D fallback.
+
+## Task 8 notes
+
+- Sun position uses the NOAA solar equations in `js/sun.js`; checked against pvlib for 6 dates/times: worst difference 0.06°.
+- Each month uses its 21st day (closest to the solstices and equinoxes). Times are Indian Standard Time.
+- **Bengaluru fact worth teaching:** at noon in May the sun is 82° up and slightly *north* (latitude 13° N), so south walls are in shade at midday in summer, while in December afternoons the low south-west sun reaches deep under a chajja.
+- Lighting rebalanced so sunlit walls are clearly brighter than shaded ones; glass made a little more solid so shadow lines show.
+- Night: sky turns dark blue and interior lights glow through the windows.
+- Shadow lines on glass are still subtle; task 10's "% of window area in shadow" readout makes the effect explicit.
 
 ## 12. Risks
 

@@ -3,6 +3,7 @@ import { evaluate, score, bestMoves } from './engine.js';
 import { drawMonthly } from './charts.js';
 import { drawScene2D } from './scene2d.js';
 import { createScene, webglAvailable } from './scene3d.js';
+import { sunControlsHTML, attachSunControls } from './sunui.js';
 
 const $ = q => document.querySelector(q);
 const fmtL = x => '₹' + (x / 1e5).toFixed(1) + ' L';
@@ -50,7 +51,7 @@ function optionDefs() {
 const detail = (opt, choice) => S.city.meta.option_details[`${opt}.${choice}`] || '';
 
 // ---------- start screen ----------
-function disposeScene() { if (S.scene3d) { S.scene3d.dispose(); S.scene3d = null; } }
+function disposeScene() { if (S.sunui) { S.sunui.stop(); S.sunui0 = { month: S.sunui.state.month, hour: S.sunui.state.hour }; } S.sunui = null; if (S.scene3d) { S.scene3d.dispose(); S.scene3d = null; } }
 
 function renderLevels() {
   disposeScene();
@@ -135,7 +136,7 @@ function renderGame() {
     <section class="mid">
       <div class="scene" id="scenebox">${S.use3d ? '<div id="scene3d" role="img" aria-label="3D view of your building: drag to orbit, scroll or pinch to zoom"></div>' : '<svg id="scene" role="img" aria-label="Drawing of your building"></svg>'}
         <div class="brief"><b>Client brief</b>${lv.brief}</div>
-        <div class="tag">${S.use3d ? 'Drag to orbit · scroll to zoom' : '2D view (3D needs WebGL)'}</div>
+        ${S.use3d ? sunControlsHTML() : '<div class="tag">2D view (3D needs WebGL)</div>'}
         <div class="scan" id="scan"></div></div>
       <div class="card"><h3 id="mtitle">Month by month: energy used vs solar generated</h3>
         <div class="fig"><svg id="mchart"></svg></div>
@@ -159,7 +160,10 @@ function renderGame() {
   $('#subsidy').checked = S.settings.subsidy;
   $('#subsidy').onchange = e => { S.settings.subsidy = e.target.checked; refreshRuns(); update(); };
   disposeScene();
-  if (S.use3d) S.scene3d = createScene($('#scene3d'), S.city.meta);
+  if (S.use3d) {
+    S.scene3d = createScene($('#scene3d'), S.city.meta);
+    S.sunui = attachSunControls($('#scenebox'), S.scene3d, S.city.meta.city, S.sunui0 || {});
+  }
   else new ResizeObserver(() => drawScene2D($('#scene'), S.city, S.ch)).observe($('#scene'));
   new ResizeObserver(() => drawMonthly($('#mchart'), S.cur.r)).observe($('#mchart'));
   update(); window.scrollTo(0, 0);
