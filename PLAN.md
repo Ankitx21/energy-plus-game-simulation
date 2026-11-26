@@ -143,7 +143,7 @@ energy-simulation-game/
 | **A. Simulation pipeline** |||||
 | 1 | **Setup and inputs:** folders, Bengaluru weather file, `sim/inputs.py` with Indian material values (ECBC/ENS), schedules, IMAC, tariff, CPWD costs | You can read and check every input value in one file | — | ✅ done |
 | 2 | **Shoebox model:** `make_idf.py`; build and run 1 design | 1 sample model runs; results shown in plain language | ~1 min | ✅ done |
-| 3 | **Test batch:** ~50 designs, timing, sanity checks (shading lowers cooling, cool roof lowers roof gain, energy per m² in a realistic range) | Checks pass; estimated full-batch time known | ~5 min | ✅ awaiting your review |
+| 3 | **Test batch:** ~50 designs, timing, sanity checks (shading lowers cooling, cool roof lowers roof gain, energy per m² in a realistic range) | Checks pass; estimated full-batch time known | ~5 min | ✅ done |
 | 4 | **Full batch:** all 20,736 designs | All runs finished (can resume if stopped) | **~3 h** | ☐ |
 | 5 | **Export:** one table < 5 MB, plus "what matters most" ranking and Pareto front | Data file ready; summary of key findings for Bengaluru | ~5 min | ☐ |
 | **B. Game** (tasks 6–9 can be done while task 4 runs) |||||
