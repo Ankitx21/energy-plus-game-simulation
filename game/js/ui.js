@@ -3,7 +3,7 @@ import { evaluate, score, bestMoves } from './engine.js';
 import { drawMonthly } from './charts.js';
 import { drawScene2D } from './scene2d.js';
 import { createScene, webglAvailable } from './scene3d.js';
-import { sunControlsHTML, attachSunControls } from './sunui.js';
+import { sunControlsHTML, attachSunControls, attachViewControls, savedQuality } from './sunui.js';
 
 const $ = q => document.querySelector(q);
 const fmtL = x => '₹' + (x / 1e5).toFixed(1) + ' L';
@@ -161,7 +161,8 @@ function renderGame() {
   $('#subsidy').onchange = e => { S.settings.subsidy = e.target.checked; refreshRuns(); update(); };
   disposeScene();
   if (S.use3d) {
-    S.scene3d = createScene($('#scene3d'), S.city.meta);
+    S.scene3d = createScene($('#scene3d'), S.city.meta, { quality: savedQuality() });
+    attachViewControls($('#scenebox'), S.scene3d);
     S.sunui = attachSunControls($('#scenebox'), S.scene3d, S.city.meta.city, S.sunui0 || {});
   }
   else new ResizeObserver(() => drawScene2D($('#scene'), S.city, S.ch)).observe($('#scene'));
@@ -215,7 +216,12 @@ function update() {
   document.querySelectorAll('.sim').forEach(b => { b.disabled = !ok; b.textContent = S.simsLeft > 0 ? `Simulate (${S.simsLeft} left)` : 'No simulations left'; });
   $('#simnote').textContent = !live ? 'This exact design is not in the table yet (batch still running)'
     : changed() ? 'Design changed since last run' : 'Change something to run a new simulation';
-  if (S.scene3d) S.scene3d.update(S.ch); else drawScene2D($('#scene'), S.city, S.ch);
+  if (S.scene3d) {
+    // outdoor AC units: about one per 2 tons of AC capacity, only in AC modes
+    const acOn = S.city.meta.cooling_modes[S.ch.cooling].ac;
+    const acUnits = !acOn ? 0 : live ? Math.min(4, Math.max(1, Math.ceil(live.tons / 2))) : 2;
+    S.scene3d.update(S.ch, { acUnits });
+  } else drawScene2D($('#scene'), S.city, S.ch);
   drawMonthly($('#mchart'), S.cur.r);
   const r = S.cur.r;
   $('#mtitle').textContent = r.pv >= r.use ? 'Month by month: solar covers the year' : r.pv > 0 ? 'Month by month: where solar falls short' : 'Month by month: energy used, no solar yet';

@@ -8,6 +8,12 @@ export function sunControlsHTML() {
     <button class="splay" id="splay" aria-label="Play the day from sunrise to sunset">▶ Play the day</button>
     <input type="range" id="stime" min="5" max="19.5" step="0.0833" aria-label="Time of day">
     <span class="sread" id="sread" aria-live="polite"></span>
+    <div class="vrow" role="group" aria-label="Camera views">
+      ${[['street', 'Street'], ['aerial', 'Aerial'], ['north', 'N'], ['east', 'E'], ['south', 'S'], ['west', 'W']]
+        .map(([k, t]) => `<button class="vbtn" data-view="${k}" aria-label="${k} view">${t}</button>`).join('')}
+      <label class="qual">Quality <select id="squal">
+        <option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
+    </div>
   </div>`;
 }
 
@@ -53,3 +59,12 @@ export function attachSunControls(root, scene, site, { month = 5, hour = 12.5, o
   setMonth(month);
   return { state: st, stop, setMonth, setHour: h => { st.hour = h; apply(); } };
 }
+
+// Camera preset buttons and the quality selector (stored per browser)
+export function attachViewControls(root, scene) {
+  root.querySelectorAll('[data-view]').forEach(b => b.onclick = () => scene.setView(b.dataset.view));
+  const q = root.querySelector('#squal');
+  q.value = scene.quality;
+  q.onchange = () => { scene.setQuality(q.value); try { localStorage.setItem('nzb-quality', q.value); } catch (e) { /* ignore */ } };
+}
+export function savedQuality() { try { return localStorage.getItem('nzb-quality') || undefined; } catch (e) { return undefined; } }

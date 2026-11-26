@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { OrbitControls } from '../vendor/OrbitControls.js';
 import { RoomEnvironment } from '../vendor/RoomEnvironment.js';
 import * as TX from './textures.js';
+import { buildSite, mergedBoxes } from './site3d.js';
 
 // Simulation world (x east, y north, z up) -> three.js (x east, y up, z south)
 const V = (x, y, z) => new THREE.Vector3(x, z, -y);
@@ -47,14 +48,26 @@ function solarPanelTexture() {
   return t;
 }
 
+export const QUALITY = {
+  low:    { label: 'Low',    pixelRatio: 1,   shadowMap: 1024, soft: false, detail: false, fans: false },
+  medium: { label: 'Medium', pixelRatio: 1.5, shadowMap: 2048, soft: true,  detail: true,  fans: false },
+  high:   { label: 'High',   pixelRatio: 2,   shadowMap: 2048, soft: true,  detail: true,  fans: true },
+};
+export function autoQuality() {
+  const mobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || matchMedia('(pointer: coarse)').matches;
+  const cores = navigator.hardwareConcurrency || 4;
+  return mobile ? (cores >= 8 ? 'medium' : 'low') : (cores >= 8 ? 'high' : 'medium');
+}
+
 export function createScene(container, meta, opts = {}) {
-  const geo = meta.geometry;
+  const geo = meta.geometry, Ld0 = geo.length;
   let needs = true, raf = 0, disposed = false;
+  let quality = QUALITY[opts.quality] ? opts.quality : autoQuality();
   function requestRender() { needs = true; }
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: !!opts.preserveDrawingBuffer });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, QUALITY[quality].pixelRatio));
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = QUALITY[quality].soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
   renderer.domElement.style.display = 'block';
@@ -93,7 +106,7 @@ export function createScene(container, meta, opts = {}) {
   scene.add(hemi);
   const sun = new THREE.DirectionalLight('#fff3df', 2.4);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(QUALITY[quality].shadowMap, QUALITY[quality].shadowMap);
   Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 14, bottom: -14, near: 1, far: 100 });
   sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
   scene.add(sun, sun.target);
@@ -162,9 +175,12 @@ export function createScene(container, meta, opts = {}) {
     sunDisc.position.copy(dir).multiplyScalar(SUN_R); sunDisc.visible = e > -1;
     sunDisc.material.color.copy(C('#ffffff', '#ffb070', golden));
     marker.position.copy(dirOf(azimuthDeg, Math.max(e, 0)).multiplyScalar(ARC_R)); marker.visible = e > -0.5;
-    const night = 1 - smooth(-4, 3, e);   // interior lights glow through the windows after dark
-    for (const k of ['glass_true', 'glass_false']) if (mats[k]) { mats[k].emissive.set('#ffcf8a'); mats[k].emissiveIntensity = 0.55 * night; }
+    applyGlow();
     requestRender();
+  }
+  function applyGlow() {  // interior lights glow through the windows after dark
+    const night = 1 - smooth(-4, 3, sunState.elevation);
+    for (const k of ['glass_true', 'glass_false']) if (mats[k]) { mats[k].emissive.set('#ffcf8a'); mats[k].emissiveIntensity = 0.55 * night; }
   }
 
   // Ground
@@ -197,8 +213,17 @@ export function createScene(container, meta, opts = {}) {
   const panelMat = mats.panel = new THREE.MeshStandardMaterial({ map: solarPanelTexture(), roughness: 0.25, metalness: 0.3 });
   const mountMat = mats.mount = new THREE.MeshStandardMaterial({ color: '#a7adb3', roughness: 0.5, metalness: 0.6 });
 
+  const acMat = mats.ac = new THREE.MeshStandardMaterial({ color: '#e9ebec', roughness: 0.5, metalness: 0.1 });
+  const acGrille = mats.acGrille = new THREE.MeshStandardMaterial({ color: '#3a3e42', roughness: 0.6 });
+  const tankMat = mats.tank = new THREE.MeshStandardMaterial({ color: '#2b2d2f', roughness: 0.55 });
+  const doorMat = mats.door = new THREE.MeshStandardMaterial({ color: '#6b4a2e', roughness: 0.7 });
+  const fanMat = mats.fan = new THREE.MeshStandardMaterial({ color: '#d9d4c9', roughness: 0.5, metalness: 0.3 });
+  const bladeMat = mats.blade = new THREE.MeshStandardMaterial({ color: '#6b4a2e', roughness: 0.6, side: THREE.DoubleSide });
+
   const building = new THREE.Group();
   scene.add(building);
+  let site = null, siteKey = '';
+  const fans = [];
 
   const add = (parent, geom, mat, { cast = true, receive = true } = {}) => {
     const m = new THREE.Mesh(geom, mat); m.castShadow = cast; m.receiveShadow = receive; parent.add(m); return m;
@@ -210,18 +235,27 @@ export function createScene(container, meta, opts = {}) {
     building.clear();
   }
 
-  let lastKey = '';
-  function update(design) {
-    const key = JSON.stringify(design);
+  let lastKey = '', lastDesign = null, lastExtras = {};
+  function update(design, extras = {}) {
+    const key = JSON.stringify([design, extras, quality]);
     if (key === lastKey) return;
-    lastKey = key;
+    lastKey = key; lastDesign = design; lastExtras = extras;
     clear();
+    fans.length = 0;
     const facades = geo.facades[`${design.orientation}|${design.wwr_ns}|${design.wwr_ew}`];
     const th = geo.wall_thickness[design.wall];
     const H = geo.floors * geo.floor_to_floor, par = geo.parapet;
     const Wd = geo.width, Ld = geo.length, bearing = geo.bearing[design.orientation];
     const wm = wallMat(design.wall);
     const sh = geo.shading[design.shading];
+    const Q = QUALITY[quality];
+    const sKey = `${bearing}|${Q.detail}`;
+    if (sKey !== siteKey) {
+      if (site) { site.group.traverse(o => o.geometry?.dispose()); scene.remove(site.group); }
+      site = buildSite({ Wd, Ld, bearing, detail: Q.detail }); siteKey = sKey; scene.add(site.group);
+    }
+    const acUnits = meta.cooling_modes[design.cooling].ac ? (extras.acUnits || 0) : 0;
+    const acOn = { side_b: Math.min(acUnits, 3), end_b: Math.max(0, acUnits - 3) };  // west-side wall first, then the back
 
     // --- walls with window openings, one per facade, in facade-local coordinates ---
     for (const f of facades) {
@@ -242,18 +276,17 @@ export function createScene(container, meta, opts = {}) {
       // floor band between storeys (flush, colour only)
       box(g, f.length - th, 0.14, 0.004, paint, (f.length + th) / 2, geo.floor_to_floor, 0.002, { cast: false });
 
+      const frames = [], sills = [], rods = [];
       for (const [x0, z0, w, h] of f.windows) {
         const cx = x0 + w / 2, inset = -0.07;
         const gl = add(g, new THREE.PlaneGeometry(w, h), glassMat(design.glazing === 'double_lowe'), { cast: false });
         gl.position.set(cx, z0 + h / 2, inset); gl.userData.kind = 'glass';
-        const fw = 0.05, fd = 0.06;  // frame profile
-        box(g, w, fw, fd, frameMat, cx, z0 + fw / 2, inset, { cast: false });
-        box(g, w, fw, fd, frameMat, cx, z0 + h - fw / 2, inset, { cast: false });
-        box(g, fw, h, fd, frameMat, x0 + fw / 2, z0 + h / 2, inset, { cast: false });
-        box(g, fw, h, fd, frameMat, x0 + w - fw / 2, z0 + h / 2, inset, { cast: false });
+        const fw = 0.05, fd = 0.06;  // frame profile (merged into one mesh per facade below)
+        frames.push([w, fw, fd, cx, z0 + fw / 2, inset], [w, fw, fd, cx, z0 + h - fw / 2, inset],
+                    [fw, h, fd, x0 + fw / 2, z0 + h / 2, inset], [fw, h, fd, x0 + w - fw / 2, z0 + h / 2, inset]);
         const panes = Math.max(2, Math.round(w / 1.1));
-        for (let k = 1; k < panes; k++) box(g, 0.035, h, fd, frameMat, x0 + w * k / panes, z0 + h / 2, inset, { cast: false });
-        box(g, w + 0.1, 0.035, th + 0.05, sillMat, cx, z0 - 0.0175, -(th - 0.05) / 2, { cast: false });  // stone sill
+        for (let k = 1; k < panes; k++) frames.push([0.035, h, fd, x0 + w * k / panes, z0 + h / 2, inset]);
+        sills.push([w + 0.1, 0.035, th + 0.05, cx, z0 - 0.0175, -(th - 0.05) / 2]);  // stone sill
         const head = z0 + h;
         if (design.shading === 'overhang') {  // simulated plane at head + height_above_head; slab sits on top of it
           const e = sh.side_extension_m, d = sh.depth_m, zb = head + sh.height_above_head_m;
@@ -262,7 +295,21 @@ export function createScene(container, meta, opts = {}) {
           const e = sh.side_extension_m, d = sh.slat_depth_m, off = sh.offset_from_wall_m, n = sh.slat_count;
           for (let k = 0; k < n; k++) box(g, w + 2 * e, 0.022, d, louvreMat, cx, head - k * h / n, off + d / 2).userData.kind = 'louvre';
           const zTop = head, zBot = head - (n - 1) * h / n;
-          for (const xr of [x0 - e + 0.012, x0 + w + e - 0.012]) box(g, 0.024, zTop - zBot, 0.024, louvreMat, xr, (zTop + zBot) / 2, off + d / 2, { cast: false });
+          for (const xr of [x0 - e + 0.012, x0 + w + e - 0.012]) rods.push([0.024, zTop - zBot, 0.024, xr, (zTop + zBot) / 2, off + d / 2]);
+        }
+      }
+      g.add(mergedBoxes(frames, frameMat, { cast: false }), mergedBoxes(sills, sillMat, { cast: false }));
+      if (rods.length) g.add(mergedBoxes(rods, louvreMat, { cast: false }));
+
+      // Outdoor AC units on wall brackets, in the band between the floors (clear of every window)
+      if (acOn[f.name] > 0) {
+        const n = acOn[f.name];
+        for (let k = 0; k < n; k++) {
+          const sx = th + (f.length - th) * (k + 1) / (n + 1), zc = geo.floor_to_floor - 0.1;
+          box(g, 0.82, 0.56, 0.3, acMat, sx, zc, 0.22);
+          const grille = add(g, new THREE.CircleGeometry(0.2, 20), acGrille, { cast: false });
+          grille.position.set(sx - 0.15, zc, 0.371);
+          g.add(mergedBoxes([[0.04, 0.04, 0.42, sx - 0.3, zc - 0.3, 0.2], [0.04, 0.04, 0.42, sx + 0.3, zc - 0.3, 0.2]], frameMat, { cast: false }));
         }
       }
       // facade label on the ground
@@ -287,6 +334,34 @@ export function createScene(container, meta, opts = {}) {
     box(L, th + 0.06, 0.06, Ld + 0.06, paint, -Wd / 2 + th / 2, cy, 0);
     box(L, Wd + 0.06, 0.06, th + 0.06, paint, 0, cy, Ld / 2 - th / 2);
     box(L, Wd + 0.06, 0.06, th + 0.06, paint, 0, cy, -Ld / 2 + th / 2);
+
+    // Stair headroom (mumty) in the end_b corner of the roof, with the water tank on top
+    const mw = 3.0, ml = 3.3, mh = 2.5, mx = -Wd / 2 + th + mw / 2, my = Ld / 2 - th - ml / 2;
+    box(L, mw, mh, ml, [wm, wm, rm, wm, wm, wm], mx, H + mh / 2, -my);
+    box(L, 0.9, 2.05, 0.04, doorMat, mx + 0.4, H + 1.025, -(my - ml / 2) + 0.02, { cast: false });
+    const tank = add(L, new THREE.CylinderGeometry(0.62, 0.66, 1.3, Q.detail ? 24 : 12), tankMat);
+    tank.position.set(mx, H + mh + 0.65, -my);
+    const lid = add(L, new THREE.CylinderGeometry(0.22, 0.22, 0.08, 12), tankMat, { cast: false });
+    lid.position.set(mx, H + mh + 1.34, -my);
+
+    // Ceiling fans, visible through the windows when the cooling mode uses fans
+    if (meta.cooling_modes[design.cooling].fans) {
+      for (const [fy, ceil] of [[0, geo.floor_to_floor - 0.15], [1, H - rt]]) {
+        // blades just below the window head so they read through the glass (decorative; not simulated)
+        const bladeY = fy * geo.floor_to_floor + geo.window_sill + geo.window_height - 0.05, drop = ceil - bladeY;
+        for (const py of [-Ld / 4, Ld / 4]) {
+          const fan = new THREE.Group(); fan.position.set(0, bladeY, -py);
+          const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, drop, 6), fanMat); rod.position.y = drop / 2; fan.add(rod);
+          const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.13, 0.14, 14), fanMat); fan.add(hub);
+          const blades = new THREE.Group();
+          for (let b = 0; b < 3; b++) {
+            const bl = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.015, 0.13), bladeMat);
+            bl.position.x = 0.42; bl.rotation.x = 0.25;  // blade pitch const arm = new THREE.Group(); arm.rotation.y = b * Math.PI * 2 / 3; arm.add(bl); blades.add(arm);
+          }
+          fan.add(blades); L.add(fan); fans.push(blades);
+        }
+      }
+    }
 
     // --- solar panels: 30-panel layout (= 12 kWp), tilted towards the side facing closest to south ---
     const sol = meta.economics.solar, [pw, pl] = sol.panel_size_m;
@@ -316,6 +391,7 @@ export function createScene(container, meta, opts = {}) {
         box(L, 0.05, 0.3 + pl * Math.sin(tilt) / 2, 0.05, mountMat, px, H + (0.3 + pl * Math.sin(tilt) / 2) / 2, -py, { cast: false });
       }
     }
+    applyGlow();
     requestRender();
   }
 
@@ -346,26 +422,74 @@ export function createScene(container, meta, opts = {}) {
   scene.add(compass);
   setSun(sunState.azimuth, sunState.elevation);
 
-  // Render on demand
+  // Camera presets (smooth move; instant if the user prefers reduced motion)
+  let tween = null;
+  function setView(name, { instant = false } = {}) {
+    const tgt = new THREE.Vector3(0, 3, 0), r = 25;
+    const dirs = { north: [0, -1], east: [1, 0], south: [0, 1], west: [-1, 0] };  // three.js x, z
+    let pos;
+    if (name === 'street') {
+      // stand on the far footpath across the road, a little to one side of the gate
+      const f = site ? site.front.clone() : new THREE.Vector3(0, 0, 1), side = new THREE.Vector3(f.z, 0, -f.x);
+      pos = f.clone().multiplyScalar(Ld0 / 2 + 5 + 9.5).addScaledVector(side, 5); pos.y = 1.65; tgt.set(0, 3.4, 0);
+    } else if (name === 'aerial') { pos = new THREE.Vector3(16, 36, 22); tgt.set(0, 2, 0); }
+    else if (dirs[name]) { pos = new THREE.Vector3(dirs[name][0] * r, 4.5, dirs[name][1] * r); }
+    else return;
+    const fromP = camera.position.clone(), fromT = controls.target.clone();
+    if (instant || matchMedia('(prefers-reduced-motion: reduce)').matches) { camera.position.copy(pos); controls.target.copy(tgt); requestRender(); return; }
+    tween = { fromP, fromT, pos, tgt, t0: performance.now(), ms: 800 };
+  }
+  function stepTween(now) {
+    if (!tween) return false;
+    const k = Math.min(1, (now - tween.t0) / tween.ms), e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+    camera.position.lerpVectors(tween.fromP, tween.pos, e); controls.target.lerpVectors(tween.fromT, tween.tgt, e);
+    if (k >= 1) tween = null;
+    return true;
+  }
+
+  function setQuality(q) {
+    if (!QUALITY[q] || q === quality) return;
+    quality = q; const Q = QUALITY[q];
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.pixelRatio));
+    renderer.shadowMap.type = Q.soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+    sun.shadow.mapSize.set(Q.shadowMap, Q.shadowMap);
+    if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+    scene.traverse(o => { if (o.material) [].concat(o.material).forEach(m => { m.needsUpdate = true; }); });
+    resize();
+    if (lastDesign) { const d = lastDesign; lastKey = ''; update(d, lastExtras); }
+  }
+
+  // Render on demand (continuously only while the camera moves or fans spin)
   controls.addEventListener('change', requestRender);
-  function loop() {
+  let lastT = performance.now();
+  function loop(now = performance.now()) {
     if (disposed) return;
     raf = requestAnimationFrame(loop);
+    const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+    const moving = stepTween(now);
     const moved = controls.update();
-    if (needs || moved) { renderer.render(scene, camera); needs = false; }
+    const spin = QUALITY[quality].fans && fans.length && !document.hidden;
+    if (spin) for (const b of fans) b.rotation.y += dt * 5;
+    if (needs || moved || moving || spin) { renderer.render(scene, camera); needs = false; }
   }
   function resize() {
     const w = container.clientWidth || 600, h = container.clientHeight || 400;
     renderer.setSize(w, h, false);
     renderer.domElement.style.width = '100%'; renderer.domElement.style.height = '100%';
     camera.aspect = w / h; camera.updateProjectionMatrix(); requestRender();
+    if (opts.still) { controls.update(); renderer.render(scene, camera); }
   }
   const ro = new ResizeObserver(resize); ro.observe(container); resize();
-  loop();
+  if (!opts.still) loop();  // still mode (screenshots/tests): render only via renderNow()
 
   return {
-    update, setSun, setSunPath, requestRender, get sunState() { return sunState; }, camera, controls, renderer, scene,
+    update, setSun, setSunPath, setView, setQuality, requestRender, get quality() { return quality; },
+    get sunState() { return sunState; }, camera, controls, renderer, scene,
     renderNow() { controls.update(); renderer.render(scene, camera); },
-    dispose() { disposed = true; cancelAnimationFrame(raf); ro.disconnect(); clear(); renderer.dispose(); container.removeChild(renderer.domElement); },
+    dispose() {
+      disposed = true; cancelAnimationFrame(raf); ro.disconnect(); clear();
+      if (site) site.group.traverse(o => o.geometry?.dispose());
+      renderer.dispose(); container.removeChild(renderer.domElement);
+    },
   };
 }

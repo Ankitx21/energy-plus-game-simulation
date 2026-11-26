@@ -134,6 +134,7 @@ energy-simulation-game/
 │  ├─ js/scene3d.js             three.js house built from the exact simulated geometry
 │  ├─ js/sun.js                 sun position (NOAA equations), sunrise/sunset, daily sun path
 │  ├─ js/sunui.js               month selector, time slider, "play the day", readout
+│  ├─ js/site3d.js              plot, compound wall + gate, paving, road, trees, neighbouring blocks
 │  ├─ js/textures.js            procedural materials (brick, AAC plaster, rammed earth, roofs, grass)
 │  ├─ js/scene2d.js             2D fallback for devices without WebGL
 │  ├─ dev/                      developer pages: scene.html (render any design), golden.html (golden-rule test)
@@ -162,7 +163,7 @@ energy-simulation-game/
 | 6 | **Game skeleton:** split prototype into files, Bengaluru-only start screen, new option panel, load table, browser maths | Game plays with real data (still 2D) | — | ✅ done |
 | 7 | **3D building:** geometry matching the shoebox, windows per facade, shading, materials that change with options | Building changes correctly with every option | — | ✅ done |
 | 8 | **Sun and shadows:** suncalc, time/month controls, play the day, sun path, compass, sky | Real sun position; shadows move with time and month | — | ✅ done |
-| 9 | **Site, details, camera, quality:** compound, trees, neighbours, tank, mumty, AC units, fans, presets, quality setting | Scene looks finished; runs smoothly | — | ☐ |
+| 9 | **Site, details, camera, quality:** compound, trees, neighbours, tank, mumty, AC units, fans, presets, quality setting | Scene looks finished; runs smoothly | — | ✅ awaiting your review |
 | 10 | **Overlays:** heat-flow arrows, facade heat map, window-shadow % readout | Overlays match simulated gains | — | ☐ |
 | 11 | **Features 1–3:** predict-before-simulate, window ratio per facade, heat-flow chart + advice | Working in game | — | ☐ |
 | 12 | **Features 4–5:** design explorer (scatter + Pareto, click to load), what matters most | Working in game | — | ☐ |
@@ -243,6 +244,17 @@ git checkout main                 # back to the latest approved version
 - Lighting rebalanced so sunlit walls are clearly brighter than shaded ones; glass made a little more solid so shadow lines show.
 - Night: sky turns dark blue and interior lights glow through the windows.
 - Shadow lines on glass are still subtle; task 10's "% of window area in shadow" readout makes the effect explicit.
+
+## Task 9 notes
+
+- **Site** (rotates with the house; gate on the end_a side): compound wall with pillars and steel gate, driveway and apron paving, road with footpath, three trees, shrubs, six neighbouring blocks.
+- **Fidelity:** the simulation assumes an open site, so neighbouring blocks stand well away and **cast no shadows**; trees sit in plot corners away from windows. The 1.2 m compound wall can shade the lowest part of ground-floor windows only when the sun is very low.
+- **Details:** stair headroom (mumty) with door and black water tank in the roof corner kept free of panels; outdoor AC units on wall brackets in the band between floors (about one per 2 tons, west-side wall first) only when AC is chosen; ceiling fans (2 per floor) visible through windows in fan and mixed modes, spinning on High quality.
+- **Camera presets:** Street (from the footpath across the road), Aerial (shows the whole sun path), N, E, S, W. Smooth moves; instant with reduced motion.
+- **Quality:** High / Medium / Low (shadow map 2048/2048/1024, soft/soft/hard shadows, pixel ratio 2/1.5/1, detail on/on/off, spinning fans on High only). Auto-picked from device type and CPU cores; the choice is remembered.
+- **Fans** hang with blades at 2.2 m (just below the window head) so they can be seen through the glass from street level; from raised camera angles the line of sight points down into the rooms, so fans are hidden, as in real life.
+- **Testing note:** headless Chrome screenshots stall on animated pages while the batch loads the CPU; `dev/scene.html` therefore renders in a still mode. Idle check: the game draws 37 frames while loading and then stops (no continuous rendering).
+- **Performance:** window frames, sills, louvre rods, walls, pillars and neighbour windows are merged into a few meshes; the scene only re-renders when something changes (camera, sun, design, spinning fans).
 
 ## 12. Risks
 
