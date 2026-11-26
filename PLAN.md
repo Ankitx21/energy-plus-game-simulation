@@ -168,7 +168,7 @@ energy-simulation-game/
 | 10 | **Overlays:** heat-flow arrows, facade heat map, window-shadow % readout | Overlays match simulated gains | — | ✅ done |
 | 11 | **Features 1–3:** predict-before-simulate, window ratio per facade, heat-flow chart + advice | Working in game | — | ✅ done |
 | 12 | **Features 4–5:** design explorer (scatter + Pareto, click to load), what matters most | Working in game | — | ✅ done |
-| 13 | **Feature 6:** bill, payback, 3 missions | Working in game | — | ☐ |
+| 13 | **Feature 6:** bill, payback, 3 missions | Working in game | — | ✅ done |
 | **C. Finish** |||||
 | 14 | **Polish and guides:** test laptop and phone sizes, fix issues, write `SETUP.md` and `ASSUMPTIONS.md` | Demo complete; anyone can run it from the guide | — | ☐ |
 
@@ -243,6 +243,12 @@ git checkout main                 # back to the latest approved version
 - **What matters most:** options ranked by how far average energy use moves between their best and worst choice, with each choice's average and the comfort swing.
 - Colours validated for colour-blind separation in light and dark mode.
 - Dev shortcut: `?play&xopen` or `?play&xopen=matters`.
+
+## Task 13 notes
+- **Bill and payback card:** monthly bill in ₹ with net metering (bars above zero = pay, below = solar credit), yearly bill, extra cost vs the developer's draft, yearly saving, payback in years and the 25-year balance. Follows the tariff and subsidy settings.
+- **Missions** (start screen; `game/js/analysis.js` `MISSIONS`): Cheapest net zero (≥ 90 % comfort), No-AC challenge (fans only, net zero, ≥ 92 % comfort; 70 % comfort + 30 % cost), Lowest energy within budget (≥ 90 % comfort). On start the game searches every design × AC efficiency × solar size for the best possible answer (about a second).
+- Mission score: below the goal up to 399 for progress (so hints still work); goal met 400 + 600 × closeness to the best. Stars: goal met, within 80 %, within 95 %. Submitting shows the best possible value. AC modes are locked in the no-AC challenge.
+- Header shows total stars across the main level and the three missions (12). Any submit unlocks the explorer.
 
 ## Task 6 notes
 

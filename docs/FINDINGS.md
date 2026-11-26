@@ -1,6 +1,6 @@
 # Net Zero Builder · Bengaluru findings
 
-Computed from all 20,736 EnergyPlus designs with the game's own maths (tariff ₹7/kWh, solar subsidy on). 2729 ms.
+Computed from all 20,736 EnergyPlus designs with the game's own maths (tariff ₹7/kWh, solar subsidy on). 2349 ms.
 
 ## In plain words
 
