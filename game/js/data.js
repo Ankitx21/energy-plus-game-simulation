@@ -2,10 +2,10 @@
 // Table layout (written by sim/export_table.py): one row per design, 16-bit integers,
 // value = stored * scale[column]. Row number = mixed-radix index over the options, last option fastest.
 
-export async function loadCity(id = 'blr') {
+export async function loadCity(id = 'blr', base = '') {
   const [meta, buf] = await Promise.all([
-    fetch(`data/${id}.json`).then(r => { if (!r.ok) throw new Error(`data/${id}.json: ${r.status}`); return r.json(); }),
-    fetch(`data/${id}.bin`).then(r => { if (!r.ok) throw new Error(`data/${id}.bin: ${r.status}`); return r.arrayBuffer(); }),
+    fetch(`${base}data/${id}.json`).then(r => { if (!r.ok) throw new Error(`data/${id}.json: ${r.status}`); return r.json(); }),
+    fetch(`${base}data/${id}.bin`).then(r => { if (!r.ok) throw new Error(`data/${id}.bin: ${r.status}`); return r.arrayBuffer(); }),
   ]);
   return new CityData(meta, buf);
 }

@@ -16,7 +16,9 @@ const meta = await fetch('../data/blr.json').then(r => r.json());
 const q = new URLSearchParams(location.search);
 const design = { ...meta.base_design, ac: '3star', pv: 0 };
 for (const [k, v] of q) if (k in design) design[k] = k === 'pv' ? +v : v;
-const s = createScene(document.getElementById('v'), meta, { preserveDrawingBuffer: true, still: true });
+let shadowText = '';
+const s = createScene(document.getElementById('v'), meta, { preserveDrawingBuffer: true, still: true,
+  onShadow: sh => { shadowText = !sh ? '' : sh.night ? 'sun down' : `shadow ${sh.pct.toFixed(0)}% (` + Object.values(sh.byFacade).map(f => f.compass + ' ' + f.pct.toFixed(0)).join(', ') + ')'; } });
 if (q.get('cam')) s.camera.position.set(...q.get('cam').split(',').map(Number));
 if (q.get('target')) s.controls.target.set(...q.get('target').split(',').map(Number));
 if (q.get('sun')) s.setSun(...q.get('sun').split(',').map(Number));
@@ -29,8 +31,14 @@ if (q.get('month')) {
 s.update(design, { acUnits: +(q.get('ac') ?? 2) });
 if (q.get('view')) { s.setView(q.get('view'), { instant: true }); }
 if (q.get('quality')) s.setQuality(q.get('quality'));
+if (q.get('heat')) {  // ?heat=arrows or heatmap or both: needs the table to look up the design
+  const { loadCity } = await import('../js/data.js');
+  const city = await loadCity('blr', '../');
+  s.setHeat(city.lookup(design));
+  s.setOverlays({ arrows: q.get('heat').includes('arrows'), heatmap: q.get('heat').includes('heatmap') });
+}
 s.renderNow();
-document.getElementById('info').textContent = Object.entries(design).map(([k, v]) => `${k}=${v}`).join(' ') + ` | sun az ${s.sunState.azimuth.toFixed(1)} el ${s.sunState.elevation.toFixed(1)}`;
+document.getElementById('info').textContent = Object.entries(design).map(([k, v]) => `${k}=${v}`).join(' ') + ` | sun az ${s.sunState.azimuth.toFixed(1)} el ${s.sunState.elevation.toFixed(1)} | ${shadowText}`;
 document.title = 'ready';
 </script>
 </body>

@@ -8,9 +8,14 @@ export function sunControlsHTML() {
     <button class="splay" id="splay" aria-label="Play the day from sunrise to sunset">▶ Play the day</button>
     <input type="range" id="stime" min="5" max="19.5" step="0.0833" aria-label="Time of day">
     <span class="sread" id="sread" aria-live="polite"></span>
+    <div class="shread" id="shread" aria-live="polite"></div>
     <div class="vrow" role="group" aria-label="Camera views">
       ${[['street', 'Street'], ['aerial', 'Aerial'], ['north', 'N'], ['east', 'E'], ['south', 'S'], ['west', 'W']]
         .map(([k, t]) => `<button class="vbtn" data-view="${k}" aria-label="${k} view">${t}</button>`).join('')}
+      <span class="vsep" aria-hidden="true"></span>
+      <button class="vbtn ov" data-ov="arrows" aria-pressed="false">Heat arrows</button>
+      <button class="vbtn ov" data-ov="heatmap" aria-pressed="false">Heat map</button>
+      <button class="vbtn ov" data-ov="shadow" aria-pressed="true">Shadow %</button>
       <label class="qual">Quality <select id="squal">
         <option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
     </div>
@@ -68,3 +73,24 @@ export function attachViewControls(root, scene) {
   q.onchange = () => { scene.setQuality(q.value); try { localStorage.setItem('nzb-quality', q.value); } catch (e) { /* ignore */ } };
 }
 export function savedQuality() { try { return localStorage.getItem('nzb-quality') || undefined; } catch (e) { return undefined; } }
+
+// Overlay toggles (heat arrows, heat map, shadow %) and the readouts that go with them
+export function attachOverlayControls(root, scene, onToggle) {
+  const state = { arrows: false, heatmap: false, shadow: true };
+  root.querySelectorAll('[data-ov]').forEach(b => b.onclick = () => {
+    state[b.dataset.ov] = !state[b.dataset.ov];
+    b.setAttribute('aria-pressed', state[b.dataset.ov]);
+    scene.setOverlays(state); onToggle?.(state);
+  });
+  scene.setOverlays(state); onToggle?.(state);
+  return state;
+}
+
+export function renderShadowReadout(el, sh) {
+  if (!el) return;
+  if (!sh) { el.innerHTML = ''; el.hidden = true; return; }
+  el.hidden = false;
+  if (sh.night) { el.innerHTML = '<b>Windows in shadow:</b> sun is down'; return; }
+  const parts = Object.values(sh.byFacade).map(f => `<span class="${f.facingAway ? 'away' : ''}" title="${f.facingAway ? 'sun is behind this wall' : ''}">${f.compass} ${Math.round(f.pct)}%</span>`);
+  el.innerHTML = `<b>Windows in shadow: ${Math.round(sh.pct)}%</b> <span class="mut">·</span> ${parts.join(' ')}`;
+}

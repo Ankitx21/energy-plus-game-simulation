@@ -3,7 +3,8 @@ import { evaluate, score, bestMoves } from './engine.js';
 import { drawMonthly } from './charts.js';
 import { drawScene2D } from './scene2d.js';
 import { createScene, webglAvailable } from './scene3d.js';
-import { sunControlsHTML, attachSunControls, attachViewControls, savedQuality } from './sunui.js';
+import { sunControlsHTML, attachSunControls, attachViewControls, savedQuality, attachOverlayControls, renderShadowReadout } from './sunui.js';
+import { RAMP_CSS } from './overlays3d.js';
 
 const $ = q => document.querySelector(q);
 const fmtL = x => '₹' + (x / 1e5).toFixed(1) + ' L';
@@ -136,7 +137,7 @@ function renderGame() {
     <section class="mid">
       <div class="scene" id="scenebox">${S.use3d ? '<div id="scene3d" role="img" aria-label="3D view of your building: drag to orbit, scroll or pinch to zoom"></div>' : '<svg id="scene" role="img" aria-label="Drawing of your building"></svg>'}
         <div class="brief"><b>Client brief</b>${lv.brief}</div>
-        ${S.use3d ? sunControlsHTML() : '<div class="tag">2D view (3D needs WebGL)</div>'}
+        ${S.use3d ? sunControlsHTML() + '<div class="legend3d" id="legend3d" hidden></div>' : '<div class="tag">2D view (3D needs WebGL)</div>'}
         <div class="scan" id="scan"></div></div>
       <div class="card"><h3 id="mtitle">Month by month: energy used vs solar generated</h3>
         <div class="fig"><svg id="mchart"></svg></div>
@@ -161,8 +162,9 @@ function renderGame() {
   $('#subsidy').onchange = e => { S.settings.subsidy = e.target.checked; refreshRuns(); update(); };
   disposeScene();
   if (S.use3d) {
-    S.scene3d = createScene($('#scene3d'), S.city.meta, { quality: savedQuality() });
+    S.scene3d = createScene($('#scene3d'), S.city.meta, { quality: savedQuality(), onShadow: sh => renderShadowReadout($('#shread'), sh) });
     attachViewControls($('#scenebox'), S.scene3d);
+    S.overlays = attachOverlayControls($('#scenebox'), S.scene3d, () => renderLegend());
     S.sunui = attachSunControls($('#scenebox'), S.scene3d, S.city.meta.city, S.sunui0 || {});
   }
   else new ResizeObserver(() => drawScene2D($('#scene'), S.city, S.ch)).observe($('#scene'));
@@ -221,11 +223,26 @@ function update() {
     const acOn = S.city.meta.cooling_modes[S.ch.cooling].ac;
     const acUnits = !acOn ? 0 : live ? Math.min(4, Math.max(1, Math.ceil(live.tons / 2))) : 2;
     S.scene3d.update(S.ch, { acUnits });
+    S.scene3d.setHeat(live ? live.raw : null);
+    renderLegend(live);
   } else drawScene2D($('#scene'), S.city, S.ch);
   drawMonthly($('#mchart'), S.cur.r);
   const r = S.cur.r;
   $('#mtitle').textContent = r.pv >= r.use ? 'Month by month: solar covers the year' : r.pv > 0 ? 'Month by month: where solar falls short' : 'Month by month: energy used, no solar yet';
   renderResults(); renderHist(); renderBTS(); renderMbar();
+}
+
+// Legend for the heat overlays (top-right of the 3D view)
+function renderLegend(live) {
+  const el = $('#legend3d'); if (!el || !S.overlays) return;
+  const on = S.overlays.arrows || S.overlays.heatmap;
+  if (!on) { el.hidden = true; return; }
+  el.hidden = false;
+  if (live === undefined) live = evaluate(S.city, S.ch, S.settings);
+  if (!live) { el.innerHTML = '<b>Heat data</b><div class="od">This exact design has not been simulated yet.</div>'; return; }
+  el.innerHTML = `<b>${S.overlays.heatmap ? 'Heat gain per m² of wall / roof' : 'Yearly heat gain into the house'}</b>
+    <div class="bar" style="background:${RAMP_CSS}"></div><div class="ends"><span>less</span><span>more</span></div>
+    <div class="od">From EnergyPlus for this design · kWh per year</div>`;
 }
 
 function renderResults() {

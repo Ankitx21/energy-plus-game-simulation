@@ -6,6 +6,7 @@ import { OrbitControls } from '../vendor/OrbitControls.js';
 import { RoomEnvironment } from '../vendor/RoomEnvironment.js';
 import * as TX from './textures.js';
 import { buildSite, mergedBoxes } from './site3d.js';
+import { buildArrows, heatMapValues, heatColor, windowShadow } from './overlays3d.js';
 
 // Simulation world (x east, y north, z up) -> three.js (x east, y up, z south)
 const V = (x, y, z) => new THREE.Vector3(x, z, -y);
@@ -21,7 +22,7 @@ function scaleUV(geom, sx, sy) {
   return geom;
 }
 
-function textSprite(text, { size = 1, color = '#1d1a17', bg = 'rgba(255,255,255,0.85)' } = {}) {
+function textSprite(text, { size = 1, color = '#1d1a17', bg = 'rgba(255,255,255,0.85)', depthTest = true } = {}) {
   const c = document.createElement('canvas'), x = c.getContext('2d'), fs = 64;
   x.font = `700 ${fs}px Archivo, system-ui, sans-serif`;
   const w = Math.ceil(x.measureText(text).width) + 40;
@@ -30,7 +31,7 @@ function textSprite(text, { size = 1, color = '#1d1a17', bg = 'rgba(255,255,255,
   x.fillStyle = bg; x.beginPath(); x.roundRect(0, 0, w, c.height, 22); x.fill();
   x.fillStyle = color; x.textBaseline = 'middle'; x.fillText(text, 20, c.height / 2 + 2);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false }));
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, depthTest }));
   s.scale.set(size * w / c.height, size, 1);
   return s;
 }
@@ -176,6 +177,7 @@ export function createScene(container, meta, opts = {}) {
     sunDisc.material.color.copy(C('#ffffff', '#ffb070', golden));
     marker.position.copy(dirOf(azimuthDeg, Math.max(e, 0)).multiplyScalar(ARC_R)); marker.visible = e > -0.5;
     applyGlow();
+    refreshShadow();
     requestRender();
   }
   function applyGlow() {  // interior lights glow through the windows after dark
@@ -228,6 +230,12 @@ export function createScene(container, meta, opts = {}) {
   const add = (parent, geom, mat, { cast = true, receive = true } = {}) => {
     const m = new THREE.Mesh(geom, mat); m.castShadow = cast; m.receiveShadow = receive; parent.add(m); return m;
   };
+  // Invisible zero-thickness planes at exactly the simulated shading surfaces: used for the shadow % readout
+  const planeMat = new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide });
+  const shadePlane = (parent, w, d, x, y, z) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2), planeMat);
+    m.position.set(x, y, z); m.userData.kind = 'shadeplane'; parent.add(m); return m;
+  };
   const box = (parent, w, h, d, mat, x, y, z, o) => { const m = add(parent, new THREE.BoxGeometry(w, h, d), mat, o); m.position.set(x, y, z); return m; };
 
   function clear() {
@@ -272,7 +280,8 @@ export function createScene(container, meta, opts = {}) {
       }
       const wg = new THREE.ExtrudeGeometry(s, { depth: th, bevelEnabled: false });
       wg.translate(0, 0, -th);
-      add(g, wg, wm);  // same material on faces, ends and window reveals
+      const wallMesh = add(g, wg, wm);  // same material on faces, ends and window reveals
+      wallMesh.userData = { kind: 'wall', facade: f.name };
       // floor band between storeys (flush, colour only)
       box(g, f.length - th, 0.14, 0.004, paint, (f.length + th) / 2, geo.floor_to_floor, 0.002, { cast: false });
 
@@ -291,9 +300,13 @@ export function createScene(container, meta, opts = {}) {
         if (design.shading === 'overhang') {  // simulated plane at head + height_above_head; slab sits on top of it
           const e = sh.side_extension_m, d = sh.depth_m, zb = head + sh.height_above_head_m;
           box(g, w + 2 * e, 0.08, d, paint, cx, zb + 0.04, d / 2).userData.kind = 'overhang';
+          shadePlane(g, w + 2 * e, d, cx, zb, d / 2);
         } else if (design.shading === 'louvres') {
           const e = sh.side_extension_m, d = sh.slat_depth_m, off = sh.offset_from_wall_m, n = sh.slat_count;
-          for (let k = 0; k < n; k++) box(g, w + 2 * e, 0.022, d, louvreMat, cx, head - k * h / n, off + d / 2).userData.kind = 'louvre';
+          for (let k = 0; k < n; k++) {
+            box(g, w + 2 * e, 0.022, d, louvreMat, cx, head - k * h / n, off + d / 2).userData.kind = 'louvre';
+            shadePlane(g, w + 2 * e, d, cx, head - k * h / n, off + d / 2);
+          }
           const zTop = head, zBot = head - (n - 1) * h / n;
           for (const xr of [x0 - e + 0.012, x0 + w + e - 0.012]) rods.push([0.024, zTop - zBot, 0.024, xr, (zTop + zBot) / 2, off + d / 2]);
         }
@@ -325,7 +338,7 @@ export function createScene(container, meta, opts = {}) {
     box(L, Wd + 0.08, geo.plinth, Ld + 0.08, plinthMat, 0, geo.plinth / 2, 0, { cast: false });
     const rt = geo.roof_thickness[design.roof];
     const rm = roofMat(design.roof_finish === 'cool');
-    box(L, iw, rt, il, [interior, interior, rm, interior, interior, interior], 0, H - rt / 2, 0);
+    box(L, iw, rt, il, [interior, interior, rm, interior, interior, interior], 0, H - rt / 2, 0).userData = { kind: 'roofslab' };
     box(L, iw, 0.15, il, [interior, interior, floorMat, interior, interior, interior], 0, geo.floor_to_floor - 0.075, 0, { cast: false });
     const gf = add(L, new THREE.PlaneGeometry(iw, il), floorMat, { cast: false });
     gf.rotation.x = -Math.PI / 2; gf.position.y = 0.01;
@@ -392,7 +405,71 @@ export function createScene(container, meta, opts = {}) {
       }
     }
     applyGlow();
+    currentFacades = facades;
+    applyOverlays();
     requestRender();
+  }
+
+  // ---------- overlays ----------
+  const overlay = { arrows: false, heatmap: false, shadow: true };
+  let heatRaw = null, currentFacades = null, arrowsGroup = null, heatLabels = null, lastShadow = null;
+  const heatMats = [];
+  function setHeat(raw) { heatRaw = raw; applyOverlays(); }
+  function setOverlays(o) { Object.assign(overlay, o); applyOverlays(); }
+  function disposeGroup(g2) {
+    if (!g2) return;
+    g2.traverse(o => { o.geometry?.dispose(); if (o.material) { o.material.map?.dispose(); o.material.dispose?.(); } });
+    scene.remove(g2);
+  }
+  function applyOverlays() {
+    if (!currentFacades) return;
+    const H = geo.floors * geo.floor_to_floor;
+    disposeGroup(arrowsGroup); arrowsGroup = null;
+    disposeGroup(heatLabels); heatLabels = null;
+    heatMats.forEach(m => m.dispose()); heatMats.length = 0;
+    // heat map: recolour walls (per facade) and the roof slab top by kWh per m²
+    let hm = null;
+    if (overlay.heatmap && heatRaw) hm = heatMapValues(heatRaw, currentFacades, H, geo.roof_area);
+    building.traverse(o => {
+      if (o.userData.kind === 'wall') {
+        if (!o.userData.base) o.userData.base = o.material;
+        if (hm) { const m = new THREE.MeshStandardMaterial({ color: heatColor(hm.values[o.userData.facade].t), roughness: 0.9 }); heatMats.push(m); o.material = m; }
+        else o.material = o.userData.base;
+      } else if (o.userData.kind === 'roofslab') {
+        if (!o.userData.base) o.userData.base = o.material[2];
+        if (hm) { const m = new THREE.MeshStandardMaterial({ color: heatColor(hm.values.roof.t), roughness: 0.9 }); heatMats.push(m); o.material[2] = m; }
+        else o.material[2] = o.userData.base;
+      }
+    });
+    if (hm) {
+      heatLabels = new THREE.Group();
+      for (const f of currentFacades) {
+        const v = hm.values[f.name];
+        const lab = textSprite(`${f.compass}: ${Math.round(v.perM2)} kWh/m²`, { size: 0.6, depthTest: false });
+        lab.position.copy(V(f.A[0] + f.t[0] * f.length / 2 + f.n[0] * 1.2, f.A[1] + f.t[1] * f.length / 2 + f.n[1] * 1.2, 7.4));
+        lab.renderOrder = 10; heatLabels.add(lab);
+      }
+      const rl = textSprite(`Roof: ${Math.round(hm.values.roof.perM2)} kWh/m²`, { size: 0.6, depthTest: false });
+      rl.position.set(0, H + 1.6, 0); rl.renderOrder = 10; heatLabels.add(rl);
+      scene.add(heatLabels);
+    }
+    if (overlay.arrows && heatRaw) {
+      arrowsGroup = buildArrows(heatRaw, currentFacades, H, textSprite).group;
+      scene.add(arrowsGroup);
+    }
+    refreshShadow();
+    requestRender();
+  }
+  function refreshShadow() {
+    if (!currentFacades || !opts.onShadow) return;
+    const el = sunState.elevation;
+    if (!overlay.shadow) { opts.onShadow(null); return; }
+    if (el <= 0) { lastShadow = { night: true }; opts.onShadow(lastShadow); return; }
+    building.updateMatrixWorld(true);
+    const occ = [];
+    building.traverse(o => { if (o.userData.kind === 'shadeplane') occ.push(o); });
+    lastShadow = windowShadow(currentFacades, occ, dirOf(sunState.azimuth, el));
+    opts.onShadow(lastShadow);
   }
 
   // Compass rose on the ground around the house
@@ -483,7 +560,8 @@ export function createScene(container, meta, opts = {}) {
   if (!opts.still) loop();  // still mode (screenshots/tests): render only via renderNow()
 
   return {
-    update, setSun, setSunPath, setView, setQuality, requestRender, get quality() { return quality; },
+    update, setSun, setSunPath, setView, setQuality, setHeat, setOverlays, requestRender, get quality() { return quality; },
+    get shadow() { return lastShadow; },
     get sunState() { return sunState; }, camera, controls, renderer, scene,
     renderNow() { controls.update(); renderer.render(scene, camera); },
     dispose() {
