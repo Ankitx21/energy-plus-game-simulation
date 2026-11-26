@@ -92,7 +92,7 @@ function renderLevels() {
     <h2 style="font-size:clamp(26px,3.4vw,36px)">How a browser can "simulate" a building instantly</h2>
     <p style="max-width:68ch;margin:10px 0 0">The heavy physics runs once, offline. Every one of the ${fmtN(total)} designs you can make was simulated in advance with EnergyPlus, using Bengaluru's weather. Pressing Simulate finds your row in that table and does a little arithmetic on top.</p>
     <div class="pipe">${[
-      ['Weather file', `Typical year for ${m.city.name} (${m.weather_file.split('_TMYx')[0].replace('IND_KA_', '')})`, 'climate.onebuilding.org'],
+      ['Weather file', `Typical year for ${m.city.name} (TMYx 2011–2025)`, 'climate.onebuilding.org'],
       ['Shoebox model', '220 m² two-storey home; your choices are its inputs', 'Python'],
       ['EnergyPlus batch', `Every combination: ${fmtN(total)} runs`, 'once, on a laptop'],
       ['Results table', 'Monthly energy, comfort, peak load and heat gains per design', `${(total * m.columns.length * 2 / 1e6).toFixed(1)} MB in the game`],
@@ -154,7 +154,7 @@ function renderGame() {
   </div>
   <div class="grid">
     <aside class="panel" id="panel">
-      ${GROUPS.map(([g, ids]) => `<div class="og"><h4>${g}</h4>${ids.map(id => { const o = defs[id]; return `
+      ${GROUPS.map(([g, ids]) => `<div class="og">${ids.length > 1 ? `<h4>${g}</h4>` : ''}${ids.map(id => { const o = defs[id]; return `
         <div class="opt" id="o-${id}"><div class="ol">${o.label}<span class="pend" title="Changed since last simulation"></span>${o.sim ? '' : '<span class="od" style="margin:0 0 0 auto">browser calc</span>'}</div>
         <div class="chips">${o.choices.map(c => `<button class="chip" data-o="${id}" data-k="${c.id}">${c.label}</button>`).join('')}</div>
         <div class="od" id="d-${id}"></div></div>`; }).join('')}${g === 'Windows' ? '<div class="opt"><div class="ol">Glass on each facade</div><div id="ftab"></div></div>' : ''}</div>`).join('')}

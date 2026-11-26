@@ -23,7 +23,7 @@ for (const r of ref) {
   s.update({ ...r.design, ac: '3star', pv: 0 });
   s.scene.updateMatrixWorld(true);
   const found = { glass: [], overhang: [], louvres: [] };
-  s.scene.traverse(o => { const k = o.userData.kind; if (k) found[k === 'louvre' ? 'louvres' : k].push(boxOf(o)); });
+  s.scene.traverse(o => { const k = o.userData.kind, key = k === 'louvre' ? 'louvres' : k; if (found[key]) found[key].push(boxOf(o)); });  // other tagged parts (walls, roof, shade planes) are not checked here
   const check = (label, expected, got) => {
     let e = 0;
     if (expected.length !== got.length) { fails++; lines.push(`FAIL ${label}: expected ${expected.length}, found ${got.length}`); return; }
