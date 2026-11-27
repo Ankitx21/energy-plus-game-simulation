@@ -21,6 +21,7 @@ A browser game in which players redesign a two-storey Bengaluru home to be **net
 | [docs/SETUP.md](docs/SETUP.md) | How to play, put it online, and re-create the data |
 | [docs/ASSUMPTIONS.md](docs/ASSUMPTIONS.md) | Every simplification and input value, and what the game cannot tell you |
 | [docs/FINDINGS.md](docs/FINDINGS.md) | What the 20,736 simulations show for Bengaluru |
+| [docs/STAGE2_PLAN.md](docs/STAGE2_PLAN.md) | **What's next:** training a model to give instant results for any building in any Indian city; start here on a new computer |
 | [PLAN.md](PLAN.md) | The project plan, task list and notes from each task |
 | [sim/inputs.py](sim/inputs.py) | All input values in one file (`python sim/inputs.py` prints a summary) |
 

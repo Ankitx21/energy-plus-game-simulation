@@ -1,6 +1,6 @@
 # Net Zero Builder: Stage 1 plan (Bengaluru game)
 
-**Vision:** help people in India design buildings that are comfortable, low-energy and net zero, by giving instant visual feedback from real EnergyPlus simulation. Stage 1 teaches through a game; Stage 2 (later) will let users enter their own building.
+**Vision:** help people in India design buildings that are comfortable, low-energy and net zero, by giving instant visual feedback from real EnergyPlus simulation. Stage 1 teaches through a game; Stage 2 (later) will let users enter their own building: see [docs/STAGE2_PLAN.md](docs/STAGE2_PLAN.md).
 
 **Stage 1 goal:** a polished browser game in which the player redesigns a 220 m² Bengaluru home so that it is net zero (solar ≥ yearly energy use), comfortable and within budget. All results come from pre-computed EnergyPlus runs. Players learn what matters most in this climate.
 
@@ -254,7 +254,7 @@ git checkout main                 # back to the latest approved version
 - Guides: `docs/SETUP.md` (play, host, re-create the data, troubleshooting) and `docs/ASSUMPTIONS.md` (every simplification, value and limit); README rewritten.
 - Polish: no repeated group headings in the option panel; clearer weather label; larger Window % labels; `dev/scene.html?wwr`.
 - Tests: golden rule ALL PASS (worst 0.05 mm) after fixing the test to ignore part tags it does not check; jsdom runs through the main level, predictions, explorer unlock, bill and all three missions with no errors; laptop (1400 px) and phone (375 px) layouts checked, with no sideways overflow on the phone.
-- **Stage 1 (the Bengaluru game) is complete.** Stage 2 (more cities, ENS check, bring-your-own-building tool) is next when you want it.
+- **Stage 1 (the Bengaluru game) is complete.** Stage 2 (more cities, ENS check, bring-your-own-building tool) is next: see [docs/STAGE2_PLAN.md](docs/STAGE2_PLAN.md).
 
 ## Task 6 notes
 
